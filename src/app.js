@@ -10,9 +10,11 @@ import rateLimit from 'express-rate-limit';
 import routes from './routes/index.js';
 import { notFound, errorHandler } from './middlewares/error.js';
 import categoryRoutes from "./routes/category.routes.js";
-
+import contactRoutes from "./routes/contact.routes.js";
 
 const app = express();
+
+app.use("/api", contactRoutes);
 
 // ✅ Ensure Express parses query strings as plain objects
 app.set('query parser', 'simple');
