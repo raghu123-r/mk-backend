@@ -62,6 +62,7 @@ export const list = async (req, res, next) => {
 
 // GET PRODUCT BY SLUG — Express wrapper
 export const getBySlugController = async (req, res) => {
+  
   try {
     const product = await productService.getBySlug(req.params.slug);
     res.json(product);
