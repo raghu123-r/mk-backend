@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidObjectId } from 'mongoose';
 import * as productService from '../services/product.service.js';
 
 // VALIDATION SCHEMAS
@@ -68,6 +69,65 @@ export const getBySlugController = async (req, res) => {
     res.json(product);
   } catch (e) {
     res.status(404).json({ message: "Product not found" });
+  }
+};
+
+/**
+ * PATCH /api/products/:id
+ */
+export const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
+
+    const allowed = ['title','slug','description','brand','category','images','price','mrp','stock','attributes','isActive','meta','tags'];
+    const updateData = {};
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) updateData[key] = req.body[key];
+    }
+
+    if ('images' in updateData && !Array.isArray(updateData.images)) {
+      return res.status(400).json({ success:false, message: 'Images must be an array of URLs' });
+    }
+
+    // call service
+    const updated = await productService.updateProductById(id, updateData);
+    if (!updated) {
+      return res.status(404).json({ success:false, message:'Product not found' });
+    }
+
+    return res.status(200).json({ success:true, data: updated, message:'Product updated' });
+  } catch (err) {
+    console.error('updateProduct error', err);
+    // handle duplicate slug error (E11000)
+    if (err.code === 11000 && err.keyPattern && err.keyPattern.slug) {
+      return res.status(409).json({ success:false, message:'Slug already exists' });
+    }
+    return res.status(500).json({ success:false, message:'Server error' });
+  }
+};
+
+/**
+ * DELETE /api/products/:id
+ */
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ success:false, message:'Invalid product id' });
+    }
+
+    const removed = await productService.deleteProductById(id);
+    if (!removed) {
+      return res.status(404).json({ success:false, message:'Product not found' });
+    }
+
+    return res.status(200).json({ success:true, data:{ _id: id }, message:'Product deleted' });
+  } catch (err) {
+    console.error('deleteProduct error', err);
+    return res.status(500).json({ success:false, message:'Server error' });
   }
 };
 

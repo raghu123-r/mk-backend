@@ -15,6 +15,10 @@ import contactRoutes from './contact.routes.js';
 // ⭐ Your new file
 import contactInfoRoutes from "./contactInfo.routes.js";
 
+// USER DASHBOARD: User profile and dashboard routes
+import userProfileRoutes from './userProfile.routes.js';
+import userDashboardRoutes from './userDashboard.routes.js';
+
 // ADAPTERS (leave them as they are)
 import authAliases from './aliases.auth.js';
 import brandAliases from './aliases.brand.js';
@@ -63,6 +67,10 @@ if (process.env.FEATURE_ADMIN_USERS === 'true') {
 
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
+
+// USER DASHBOARD: Mount user profile and dashboard routes
+router.use('/user', userProfileRoutes);
+router.use('/user', userDashboardRoutes);
 
 router.use('/cart', cartRoutes);
 

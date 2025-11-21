@@ -95,7 +95,26 @@ export const requireAdmin = (req, res, next) => {
 };
 
 /**
+ * Simple authenticate middleware for testing
+ */
+const authenticate = (req, res, next) => {
+  try {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const secret = process.env.JWT_SECRET || 'secretkey';
+    const payload = jwt.verify(token, secret);
+    req.user = payload;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+/**
  * Alias exports for compatibility with different import patterns
  */
 export const requireAuthMiddleware = requireAuth;
 export const isAdmin = requireAdmin;
+export default authenticate;
