@@ -6,6 +6,9 @@ import brandRoutes from './brand.routes.js';
 import orderRoutes from './order.routes.js';
 import uploadRoutes from './upload.routes.js';
 import categoryRoutes from './category.routes.js';
+import cartRoutes from './cart.routes.js';
+// ADMIN AUTH: Admin authentication routes (ESM import)
+import adminAuthRoutes from './admin.auth.routes.js';
 
 
 
@@ -29,10 +32,39 @@ router.use('/auth', authRoutes);
 // ADAPTERS: mount auth aliases after main routes
 router.use('/auth', authAliases);
 
+// ADMIN AUTH: Mount admin authentication routes
+router.use('/admin', adminAuthRoutes);
+
+if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
+  (async () => {
+    const mod = await import('./admin.order.routes.js');
+    const adminOrdersRouter = mod.default || mod.router || mod;
+    router.use('/admin/orders', adminOrdersRouter);
+  })();
+}
+
+// Admin Invoices (feature-flagged)
+if (process.env.FEATURE_ADMIN_INVOICES === 'true') {
+  (async () => {
+    const mod = await import('./admin.invoice.routes.js');
+    const adminInvoicesRouter = mod.default || mod.router || mod;
+    router.use('/admin/invoices', adminInvoicesRouter);
+  })();
+}
+
+// Admin Users (feature-flagged)
+if (process.env.FEATURE_ADMIN_USERS === 'true') {
+  (async () => {
+    const mod = await import('./admin.user.routes.js');
+    const adminUsersRouter = mod.default || mod.router || mod;
+    router.use('/admin/users', adminUsersRouter);
+  })();
+}
+
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
 
-
+router.use('/cart', cartRoutes);
 
 router.use('/brands', brandRoutes);
 // ADAPTERS: mount brand aliases after main routes
