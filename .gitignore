@@ -1,6 +1,4 @@
 .env
-.env.local
-.env.*.local
 .ADMIN_AUTH_README.md      
 .ADMIN_AUTH_QUICKSTART.md
 .MONGO_FIX_README.md
