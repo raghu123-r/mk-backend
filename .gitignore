@@ -7,3 +7,5 @@
 .test-order-api.sh
 .THUNDER_CLIENT_TEST.md
 .QUICK_START.md
+.check_user.js
+.USER_DASHBOARD_API.md
