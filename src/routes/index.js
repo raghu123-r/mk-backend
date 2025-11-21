@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router } from "express";
+
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import productRoutes from './product.routes.js';
@@ -9,27 +10,26 @@ import categoryRoutes from './category.routes.js';
 import cartRoutes from './cart.routes.js';
 // ADMIN AUTH: Admin authentication routes (ESM import)
 import adminAuthRoutes from './admin.auth.routes.js';
+import contactRoutes from './contact.routes.js';
 
+// ⭐ Your new file
+import contactInfoRoutes from "./contactInfo.routes.js";
 
-
-
-
-
-
-
-
-// ADAPTERS: added by automation — safe wrapper routes for frontend compatibility
+// ADAPTERS (leave them as they are)
 import authAliases from './aliases.auth.js';
 import brandAliases from './aliases.brand.js';
 import orderAliases from './aliases.order.js';
 import rootAliases from './aliases.root.js';
 
 const router = Router();
-router.use('/categories', categoryRoutes);
 
+router.use('/categories', categoryRoutes);
+router.use('/contact', contactRoutes);
+
+// ⭐ This route serves your contact info JSON
+router.use('/contact-info', contactInfoRoutes);
 
 router.use('/auth', authRoutes);
-// ADAPTERS: mount auth aliases after main routes
 router.use('/auth', authAliases);
 
 // ADMIN AUTH: Mount admin authentication routes
@@ -67,17 +67,14 @@ router.use('/products', productRoutes);
 router.use('/cart', cartRoutes);
 
 router.use('/brands', brandRoutes);
-// ADAPTERS: mount brand aliases after main routes
 router.use('/brands', brandAliases);
 
 router.use('/orders', orderRoutes);
-// ADAPTERS: mount order aliases after main routes
 router.use('/orders', orderAliases);
 
 router.use('/upload', uploadRoutes);
 
-// ADAPTERS: mount root-level aliases (e.g., /api/me, /api/profile)
+// Root alias mounts
 router.use('/', rootAliases);
 
 export default router;
-

@@ -9,14 +9,12 @@ import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
 import routes from './routes/index.js';
 import { notFound, errorHandler } from './middlewares/error.js';
-import categoryRoutes from "./routes/category.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import adminRoutes from './routes/adminRoutes.js';
 
 
-const app = express();
 
-app.use("/api", contactRoutes);
+const app = express();
 
 // ✅ Ensure Express parses query strings as plain objects
 app.set('query parser', 'simple');
@@ -24,9 +22,6 @@ app.set('query parser', 'simple');
 // ✅ Defensive middleware — ensures req.query is always a writable plain object
 app.use((req, _res, next) => {
   try {
-    // Force req.query to be a plain writable object by reading current value
-    // and redefining as a data property. This works even if query is a getter
-    // on the prototype chain (IncomingMessage.prototype.query)
     const currentQuery = req.query || {};
     Object.defineProperty(req, 'query', {
       value: Object.assign({}, currentQuery),
@@ -36,7 +31,6 @@ app.use((req, _res, next) => {
     });
   } catch (err) {
     console.warn('query-copy middleware warning:', err.message);
-    // Fallback: ensure req.query exists as an empty object
     req.query = {};
   }
   next();
@@ -48,14 +42,15 @@ app.use(helmet());
 // ✅ Allow all your local frontend ports
 app.use(cors({
   origin: [
-    'http://localhost:3000', // Next.js default port
-    'http://localhost:3001', // alternate frontend port
-    'http://localhost:5173'  // Vite dev server port
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173'
   ],
   credentials: true,
 }));
 
 app.use(morgan('dev'));
+
 // 🧠 Body parsers — must come before sanitizers
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -71,14 +66,15 @@ app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 // � Handle Chrome DevTools .well-known requests to prevent 404 logs
 app.use('/.well-known/appspecific', (_req, res) => res.status(204).end());
 
-
 // �🩺 Health check route
 app.get('/', (_req, res) => res.json({ ok: true, service: 'kitchen-kettles-api' }));
 
 // 🚀 API routes
+// ⭐ This is the ONLY correct route mount you need
 app.use('/api', routes);
- 
-app.use("/api/categories", categoryRoutes);
+
+// ❌ Removed duplicate category mount
+// app.use("/api/categories", categoryRoutes);
 
 // 🔐 Admin routes
 app.use('/admin', adminRoutes);
