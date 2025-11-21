@@ -70,3 +70,15 @@ export const getBySlug = async (slug) => {
 
   return product;
 };
+
+// UPDATE PRODUCT BY ID
+export const updateProductById = async (id, updateData) => {
+  const updated = await Product.findByIdAndUpdate(id, updateData, { new: true }).lean();
+  return updated;
+};
+
+// DELETE PRODUCT BY ID
+export const deleteProductById = async (id) => {
+  const removed = await Product.findByIdAndDelete(id).lean();
+  return removed;
+};

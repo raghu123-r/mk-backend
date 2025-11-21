@@ -1,5 +1,4 @@
 import ContactSubmission from '../models/ContactSubmission.model.js';
-import mongoose from 'mongoose';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,11 +26,6 @@ export const createContact = async (req, res) => {
     });
     
     await contact.save();
-
-    // Log DB connection details for verification
-    console.log('✅ Contact saved to DB:', mongoose.connection.name || mongoose.connection.db?.databaseName);
-    console.log('   Collection:', contact.collection.name);
-    console.log('   Host:', mongoose.connection.host || 'Atlas');
 
     return res.status(201).json({ 
       ok: true, 
