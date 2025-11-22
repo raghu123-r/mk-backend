@@ -11,7 +11,7 @@ import routes from './routes/index.js';
 import { notFound, errorHandler } from './middlewares/error.js';
 import contactRoutes from "./routes/contact.routes.js";
 import adminRoutes from './routes/adminRoutes.js';
-
+import adminProductRoutes from "./routes/adminProductRoutes.js";
 
 
 const app = express();
@@ -78,6 +78,7 @@ app.use('/api', routes);
 
 // 🔐 Admin routes
 app.use('/admin', adminRoutes);
+app.use("/admin", adminProductRoutes);
 
 // 🧩 Error handlers
 app.use(notFound);
