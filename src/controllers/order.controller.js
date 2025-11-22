@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import * as orderService from '../services/order.service.js';
+import Cart from '../models/Cart.js';
 
 const createSchema = z.object({
   body: z.object({
@@ -33,6 +34,13 @@ export const createOrder = async (req, res, next) => {
       address: req.body.address,
       paymentMethod: req.body.paymentMethod || 'COD'
     });
+    
+    try {
+      await Cart.findOneAndUpdate(
+        { userId: req.user.id },
+        { items: [], total: 0 }
+      );
+    } catch (e) {}
     
     res.status(201).json({ 
       success: true, 
