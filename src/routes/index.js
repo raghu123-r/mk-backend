@@ -8,11 +8,12 @@ import orderRoutes from './order.routes.js';
 import uploadRoutes from './upload.routes.js';
 import categoryRoutes from './category.routes.js';
 import cartRoutes from './cart.routes.js';
-// ADMIN AUTH: Admin authentication routes (ESM import)
-import adminAuthRoutes from './admin.auth.routes.js';
-import contactRoutes from './contact.routes.js';
 
-// ⭐ Your new file
+// ADMIN AUTH
+import adminAuthRoutes from './admin.auth.routes.js';
+
+// CONTACT
+import contactRoutes from './contact.routes.js';
 import contactInfoRoutes from "./contactInfo.routes.js";
 
 // USER DASHBOARD: User profile and dashboard routes
@@ -20,6 +21,11 @@ import userProfileRoutes from './userProfile.routes.js';
 import userDashboardRoutes from './userDashboard.routes.js';
 
 // ADAPTERS (leave them as they are)
+// ⭐ NEW IMPORT — Admin Product Routes
+import adminProductRoutes from "./adminProductRoutes.js";
+
+
+// ALIASES (leave them untouched)
 import authAliases from './aliases.auth.js';
 import brandAliases from './aliases.brand.js';
 import orderAliases from './aliases.order.js';
@@ -27,17 +33,20 @@ import rootAliases from './aliases.root.js';
 
 const router = Router();
 
+// Category, Contact
 router.use('/categories', categoryRoutes);
 router.use('/contact', contactRoutes);
-
-// ⭐ This route serves your contact info JSON
 router.use('/contact-info', contactInfoRoutes);
 
+// User Auth
 router.use('/auth', authRoutes);
 router.use('/auth', authAliases);
 
-// ADMIN AUTH: Mount admin authentication routes
+// ⭐ Admin Login
 router.use('/admin', adminAuthRoutes);
+
+// ⭐ Admin Products API
+router.use('/admin/products', adminProductRoutes);
 
 if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
   (async () => {
@@ -47,7 +56,6 @@ if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
   })();
 }
 
-// Admin Invoices (feature-flagged)
 if (process.env.FEATURE_ADMIN_INVOICES === 'true') {
   (async () => {
     const mod = await import('./admin.invoice.routes.js');
@@ -56,7 +64,6 @@ if (process.env.FEATURE_ADMIN_INVOICES === 'true') {
   })();
 }
 
-// Admin Users (feature-flagged)
 if (process.env.FEATURE_ADMIN_USERS === 'true') {
   (async () => {
     const mod = await import('./admin.user.routes.js');
@@ -65,6 +72,7 @@ if (process.env.FEATURE_ADMIN_USERS === 'true') {
   })();
 }
 
+// Main User Routes
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
 
