@@ -7,11 +7,11 @@ import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
-import routes from './routes/index.js';
-import { notFound, errorHandler } from './middlewares/error.js';
-import contactRoutes from "./routes/contact.routes.js";
-import adminRoutes from './routes/adminRoutes.js';
-import adminProductRoutes from "./routes/adminProductRoutes.js";
+import routes from './src/routes/index.js';
+import { notFound, errorHandler } from './src/middlewares/error.js';
+import contactRoutes from "./src/routes/contact.routes.js";
+import adminRoutes from './src/routes/adminRoutes.js';
+import adminProductRoutes from "./src/routes/adminProductRoutes.js";
 
 
 const app = express();
