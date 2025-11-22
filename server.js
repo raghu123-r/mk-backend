@@ -10,10 +10,10 @@ console.log(
 
 import { createServer } from "http";
 import app from "./app.js";
-import "./config/db.js";
+import "./src/config/db.js";
 
 // ⭐ ADD ROUTES IMPORT
-import routes from "./routes/index.js";
+import routes from "./src/routes/index.js";
 
 const PORT = process.env.PORT || 5001;
 
