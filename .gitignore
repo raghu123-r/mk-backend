@@ -9,4 +9,5 @@
 .QUICK_START.md
 .check_user.js
 .USER_DASHBOARD_API.md
+.node_modules
 node_modules
