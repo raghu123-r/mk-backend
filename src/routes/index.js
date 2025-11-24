@@ -23,7 +23,7 @@ import userDashboardRoutes from './userDashboard.routes.js';
 // ADAPTERS (leave them as they are)
 // ⭐ NEW IMPORT — Admin Product Routes
 import adminProductRoutes from "./adminProductRoutes.js";
-
+import searchRoutes from "./search.routes.js";
 
 // ALIASES (leave them untouched)
 import authAliases from './aliases.auth.js';
@@ -37,6 +37,7 @@ const router = Router();
 router.use('/categories', categoryRoutes);
 router.use('/contact', contactRoutes);
 router.use('/contact-info', contactInfoRoutes);
+router.use("/search", searchRoutes);
 
 // User Auth
 router.use('/auth', authRoutes);
