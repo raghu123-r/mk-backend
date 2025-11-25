@@ -1,18 +1,37 @@
 import mongoose from 'mongoose';
+
+const slugify = (str) =>
+  String(str || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
+
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true },
-  brand: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
-  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  brand: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   description: String,
-  images: [{ type: String }], // Supabase public URLs
+  images: { type: [String], default: [] }, // Supabase public URLs - NOT required
   price: { type: Number, required: true },
-  mrp: Number,
+  mrp: { type: Number, required: true },
   stock: { type: Number, default: 0 },
-  attributes: { type: Map, of: String }, // e.g., color, material
-  ratingAvg: { type: Number, default: 0 },
-  ratingCount: { type: Number, default: 0 },
+  attributes: {
+    ratingAvg: { type: Number, default: 0 },
+    ratingCount: { type: Number, default: 0 }
+  },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+
+// Auto-generate slug if not provided
+productSchema.pre('validate', function(next) {
+  if (!this.slug && this.title) {
+    this.slug = slugify(this.title);
+  }
+  next();
+});
+
 export default mongoose.model('Product', productSchema);
 
