@@ -24,7 +24,13 @@ export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) =>
   const filter = { isActive: true };
 
   if (q) filter.title = { $regex: q, $options: 'i' };
-  if (brand) filter.brand = brand;
+  
+  // Handle brand filtering - accept ObjectId string or ObjectId
+  if (brand) {
+    if (mongoose.Types.ObjectId.isValid(brand)) {
+      filter.brand = brand;
+    }
+  }
 
   if (category) {
     let categoryId = null;
