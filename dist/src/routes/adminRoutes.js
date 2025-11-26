@@ -8,7 +8,7 @@ import {
   listUsers
 } from '../controllers/adminUserController.js';
 
-import { requireAdmin } from '../middlewares/auth.js';
+import { requireAuth, requireAdmin } from '../middlewares/auth.js';
 
 // PRODUCTS controller
 import * as adminProductCtrl from '../controllers/adminProductController.js';
@@ -16,17 +16,19 @@ import * as adminProductCtrl from '../controllers/adminProductController.js';
 const router = express.Router();
 
 // ---------------- AUTH ------------------
+// Login endpoint - no auth required
 router.post('/login', login);
-router.post('/logout', logout);
+// Logout should be protected
+router.post('/logout', requireAuth, requireAdmin, logout);
 
 // ---------------- PRODUCTS ------------------
-router.get('/products', requireAdmin, adminProductCtrl.listProducts);
-router.get('/products/:id', requireAdmin, adminProductCtrl.getProduct);
-router.post('/products', requireAdmin, adminProductCtrl.createProduct);
-router.put('/products/:id', requireAdmin, adminProductCtrl.updateProduct);
-router.delete('/products/:id', requireAdmin, adminProductCtrl.deleteProduct);
+router.get('/products', requireAuth, requireAdmin, adminProductCtrl.listProducts);
+router.get('/products/:id', requireAuth, requireAdmin, adminProductCtrl.getProduct);
+router.post('/products', requireAuth, requireAdmin, adminProductCtrl.createProduct);
+router.put('/products/:id', requireAuth, requireAdmin, adminProductCtrl.updateProduct);
+router.delete('/products/:id', requireAuth, requireAdmin, adminProductCtrl.deleteProduct);
 
 // ---------------- USERS ------------------
-router.get('/users', requireAdmin, listUsers);
+router.get('/users', requireAuth, requireAdmin, listUsers);
 
 export default router;
