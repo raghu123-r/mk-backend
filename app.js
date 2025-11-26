@@ -72,9 +72,8 @@ app.use('/api', routes);
 // ❌ Removed duplicate category mount
 // app.use("/api/categories", categoryRoutes);
 
-// 🔐 Admin routes
-app.use('/admin', adminRoutes);
-app.use("/admin", adminProductRoutes);
+// 🔐 Admin routes (mounted at /api/admin to match frontend expectations)
+app.use('/api/admin', adminRoutes);
 
 // 🧩 Error handlers
 app.use(notFound);
