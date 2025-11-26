@@ -12,13 +12,9 @@ import { createServer } from "http";
 import app from "./app.js";
 import "./src/config/db.js";
 
-// ⭐ ADD ROUTES IMPORT
-import routes from "./src/routes/index.js";
-
 const PORT = process.env.PORT || 5001;
 
-// ⭐ MOUNT API ROUTES HERE
-app.use("/api", routes);
+// Routes are already mounted in app.js - no need to mount again here
 
 const server = createServer(app);
 

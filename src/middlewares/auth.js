@@ -25,10 +25,11 @@ export const protect = async (req, _res, next) => {
 /**
  * Authentication middleware - verifies JWT token and attaches full user to request
  * Sets both req.user and req.admin for backward compatibility
+ * Reads token from adminToken cookie OR Authorization header
  */
 export const requireAuth = async (req, res, next) => {
   const auth = req.headers.authorization?.split(' ');
-  const token = (auth?.[0] === 'Bearer' && auth[1]) || req.cookies?.accessToken;
+  const token = (auth?.[0] === 'Bearer' && auth[1]) || req.cookies?.adminToken || req.cookies?.accessToken;
   
   if (!token) {
     return res.status(401).json({
@@ -39,7 +40,18 @@ export const requireAuth = async (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.sub);
+    
+    // Handle both token formats: {sub: userId} and {id: userId}
+    const userId = payload.sub || payload.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid token format'
+      });
+    }
+    
+    const user = await User.findById(userId);
     
     if (!user || !user.isActive) {
       return res.status(401).json({

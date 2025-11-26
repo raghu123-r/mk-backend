@@ -42,6 +42,16 @@ async function login(req, res) {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    // Set secure HttpOnly cookie for admin authentication
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('adminToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds
+    });
+
     return res.json({
       message: 'Admin login successful',
       token,
