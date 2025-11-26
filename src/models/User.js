@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String }, // only if you add password-based login later
   role: { type: String, enum: Object.values(ROLES), default: ROLES.USER },
   isActive: { type: Boolean, default: true },
+  phone: { type: String, trim: true },
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   addresses: [addressSchema]
 }, { timestamps: true });
