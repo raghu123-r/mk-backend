@@ -15,10 +15,20 @@ const slugify = (str) =>
 export const listProducts = async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, items: products });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { items: products }
+    });
   } catch (err) {
     console.error("Admin list products error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
@@ -27,12 +37,27 @@ export const getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Product not found" },
+        data: null
+      });
     }
-    return res.status(200).json({ success: true, product });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { product }
+    });
   } catch (err) {
     console.error("Admin get product error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
@@ -43,25 +68,31 @@ export const createProduct = async (req, res) => {
 
     // Validate required fields
     if (!title || !brandId || !categoryId || price == null || mrp == null) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Missing required fields: title, brandId, categoryId, price, mrp" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Missing required fields: title, brandId, categoryId, price, mrp" },
+        data: null
       });
     }
 
     // Validate price <= mrp
     if (parseFloat(price) > parseFloat(mrp)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Price cannot be greater than MRP" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Price cannot be greater than MRP" },
+        data: null
       });
     }
 
     // Validate stock >= 0
     if (stock != null && parseFloat(stock) < 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Stock cannot be negative" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Stock cannot be negative" },
+        data: null
       });
     }
 
@@ -71,27 +102,33 @@ export const createProduct = async (req, res) => {
     // Check if slug already exists
     const existingProduct = await Product.findOne({ slug });
     if (existingProduct) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Product with slug "${slug}" already exists` 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: `Product with slug "${slug}" already exists` },
+        data: null
       });
     }
 
     // Verify brand exists
     const brand = await Brand.findById(brandId);
     if (!brand) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Brand not found" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Brand not found" },
+        data: null
       });
     }
 
     // Verify category exists
     const category = await Category.findById(categoryId);
     if (!category) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Category not found" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
       });
     }
 
@@ -112,10 +149,20 @@ export const createProduct = async (req, res) => {
     });
 
     await newProduct.save();
-    return res.status(201).json({ success: true, product: newProduct });
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: { product: newProduct }
+    });
   } catch (err) {
     console.error("Admin create product error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
@@ -128,7 +175,12 @@ export const updateProduct = async (req, res) => {
     // Find existing product
     const existingProduct = await Product.findById(productId);
     if (!existingProduct) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Product not found" },
+        data: null
+      });
     }
 
     // Build update object
@@ -140,9 +192,11 @@ export const updateProduct = async (req, res) => {
       // Check if new slug already exists (but not on current product)
       const slugExists = await Product.findOne({ slug: newSlug, _id: { $ne: productId } });
       if (slugExists) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Product with slug "${newSlug}" already exists` 
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: `Product with slug "${newSlug}" already exists` },
+          data: null
         });
       }
       updateData.title = title;
@@ -153,9 +207,11 @@ export const updateProduct = async (req, res) => {
     if (brandId && brandId !== existingProduct.brand?.toString()) {
       const brand = await Brand.findById(brandId);
       if (!brand) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Brand not found" 
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Brand not found" },
+          data: null
         });
       }
       updateData.brand = brandId;
@@ -165,9 +221,11 @@ export const updateProduct = async (req, res) => {
     if (categoryId && categoryId !== existingProduct.category?.toString()) {
       const category = await Category.findById(categoryId);
       if (!category) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Category not found" 
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Category not found" },
+          data: null
         });
       }
       updateData.category = categoryId;
@@ -178,9 +236,11 @@ export const updateProduct = async (req, res) => {
     const updatedMrp = mrp != null ? parseFloat(mrp) : existingProduct.mrp;
 
     if (updatedPrice > updatedMrp) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Price cannot be greater than MRP" 
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Price cannot be greater than MRP" },
+        data: null
       });
     }
 
@@ -191,9 +251,11 @@ export const updateProduct = async (req, res) => {
     if (stock != null) {
       const stockValue = parseFloat(stock);
       if (stockValue < 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Stock cannot be negative" 
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Stock cannot be negative" },
+          data: null
         });
       }
       updateData.stock = stockValue;
@@ -220,10 +282,20 @@ export const updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    return res.status(200).json({ success: true, product: updated });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { product: updated }
+    });
   } catch (err) {
     console.error("Admin update product error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
@@ -232,11 +304,26 @@ export const deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Product not found" },
+        data: null
+      });
     }
-    return res.status(200).json({ success: true, message: "Product deleted" });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { message: "Product deleted" }
+    });
   } catch (err) {
     console.error("Admin delete product error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };

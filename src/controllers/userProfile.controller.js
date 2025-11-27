@@ -45,7 +45,7 @@ export const getProfile = async (req, res) => {
     
     if (!user) {
       return res.status(404).json(
-        errorResponse('User not found')
+        errorResponse('User not found', null, 404)
       );
     }
     
@@ -60,12 +60,12 @@ export const getProfile = async (req, res) => {
       wishlistCount: user.wishlist?.length || 0
     };
     
-    return res.json(successResponse(profile));
+    return res.status(200).json(successResponse(profile, null, 200));
     
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return res.status(500).json(
-      errorResponse('Server error')
+      errorResponse('Server error', null, 500)
     );
   }
 };
@@ -96,7 +96,7 @@ export const updateProfile = async (req, res) => {
       
       if (existingUser) {
         return res.status(409).json(
-          errorResponse('Email already in use by another account')
+          errorResponse('Email already in use by another account', null, 409)
         );
       }
       
@@ -110,7 +110,7 @@ export const updateProfile = async (req, res) => {
     // If no valid fields to update, return error
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(
-        errorResponse('No valid fields to update')
+        errorResponse('No valid fields to update', null, 400)
       );
     }
     
@@ -125,12 +125,12 @@ export const updateProfile = async (req, res) => {
     
     if (!updatedUser) {
       return res.status(404).json(
-        errorResponse('User not found')
+        errorResponse('User not found', null, 404)
       );
     }
     
-    return res.json(
-      successResponse(updatedUser, 'Profile updated successfully')
+    return res.status(200).json(
+      successResponse(updatedUser, 'Profile updated successfully', 200)
     );
     
   } catch (error) {
@@ -143,19 +143,19 @@ export const updateProfile = async (req, res) => {
         message: err.message
       }));
       return res.status(400).json(
-        errorResponse('Validation failed', errors)
+        errorResponse('Validation failed', errors, 400)
       );
     }
     
     // Handle duplicate key errors
     if (error.code === 11000) {
       return res.status(409).json(
-        errorResponse('Email already exists')
+        errorResponse('Email already exists', null, 409)
       );
     }
     
     return res.status(500).json(
-      errorResponse('Server error')
+      errorResponse('Server error', null, 500)
     );
   }
 };

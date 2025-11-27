@@ -27,9 +27,19 @@ export const getCategories = async (req, res) => {
       updated.push(mapCategory(c));
     }
 
-    res.status(200).json(updated);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: updated
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch categories", error });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Failed to fetch categories", details: error },
+      data: null
+    });
   }
 };
 
@@ -38,16 +48,31 @@ export const getCategoryById = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
     if (!category)
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
 
     if (!category.slug) {
       category.slug = category.name.toLowerCase().replace(/\s+/g, "-");
       await category.save();
     }
 
-    res.status(200).json(mapCategory(category));
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapCategory(category)
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching category", error });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Error fetching category", details: error },
+      data: null
+    });
   }
 };
 
@@ -58,9 +83,19 @@ export const createCategory = async (req, res) => {
     const category = new Category(payload);
 
     await category.save();
-    res.status(201).json(mapCategory(category));
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: mapCategory(category)
+    });
   } catch (error) {
-    res.status(400).json({ message: "Error creating category", error });
+    return res.status(400).json({
+      statusCode: 400,
+      success: false,
+      error: { message: "Error creating category", details: error },
+      data: null
+    });
   }
 };
 
@@ -77,16 +112,31 @@ export const updateCategory = async (req, res) => {
     );
 
     if (!updated)
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
 
     if (!updated.slug) {
       updated.slug = updated.name.toLowerCase().replace(/\s+/g, "-");
       await updated.save();
     }
 
-    res.status(200).json(mapCategory(updated));
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapCategory(updated)
+    });
   } catch (error) {
-    res.status(400).json({ message: "Error updating category", error });
+    return res.status(400).json({
+      statusCode: 400,
+      success: false,
+      error: { message: "Error updating category", details: error },
+      data: null
+    });
   }
 };
 
@@ -95,10 +145,25 @@ export const deleteCategory = async (req, res) => {
   try {
     const deleted = await Category.findByIdAndDelete(req.params.id);
     if (!deleted)
-      return res.status(404).json({ message: "Category not found" });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
 
-    res.status(200).json({ message: "Category deleted" });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { message: "Category deleted" }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting category", error });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Error deleting category", details: error },
+      data: null
+    });
   }
 };

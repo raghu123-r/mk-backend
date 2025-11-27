@@ -26,13 +26,28 @@ async function login(req, res) {
     }
     
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ message: 'email and password required' });
+    if (!email || !password) return res.status(400).json({
+      statusCode: 400,
+      success: false,
+      error: { message: 'email and password required' },
+      data: null
+    });
 
     const admin = await User.findOne({ email: String(email).toLowerCase().trim() });
-    if (!admin) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!admin) return res.status(401).json({
+      statusCode: 401,
+      success: false,
+      error: { message: 'Invalid credentials' },
+      data: null
+    });
 
     if (admin.role && admin.role !== 'admin') {
-      return res.status(403).json({ message: 'User is not an admin' });
+      return res.status(403).json({
+        statusCode: 403,
+        success: false,
+        error: { message: 'User is not an admin' },
+        data: null
+      });
     }
 
     // Check if passwordHash field exists - if not, auto-create it with default password 'admin123'
@@ -47,12 +62,22 @@ async function login(req, res) {
       // Now verify the provided password against the newly created hash
       const match = await bcrypt.compare(password, admin.passwordHash);
       if (!match) {
-        return res.status(401).json({ message: 'Invalid credentials. Default password is: admin123' });
+        return res.status(401).json({
+          statusCode: 401,
+          success: false,
+          error: { message: 'Invalid credentials. Default password is: admin123' },
+          data: null
+        });
       }
     } else {
       // Normal password verification for existing passwordHash
       const match = await bcrypt.compare(password, admin.passwordHash);
-      if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+      if (!match) return res.status(401).json({
+        statusCode: 401,
+        success: false,
+        error: { message: 'Invalid credentials' },
+        data: null
+      });
     }
 
     if (!JWT_SECRET) {
@@ -75,14 +100,24 @@ async function login(req, res) {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
 
-    return res.json({
-      message: 'Admin login successful',
-      token,
-      admin: { _id: admin._id, email: admin.email, name: admin.name || null, role: admin.role || 'admin' }
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: {
+        message: 'Admin login successful',
+        token,
+        admin: { _id: admin._id, email: admin.email, name: admin.name || null, role: admin.role || 'admin' }
+      }
     });
   } catch (err) {
     console.error('admin login error', err);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Internal server error' },
+      data: null
+    });
   }
 }
 

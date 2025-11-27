@@ -23,15 +23,19 @@ export const createAdminUser = async (req, res) => {
     // Validate required fields
     if (!email) {
       return res.status(400).json({
-        ok: false,
-        error: 'Email is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Email is required' },
+        data: null
       });
     }
 
     if (!name) {
       return res.status(400).json({
-        ok: false,
-        error: 'Name is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Name is required' },
+        data: null
       });
     }
 
@@ -41,8 +45,10 @@ export const createAdminUser = async (req, res) => {
     
     if (!allowedRoles.includes(userRole)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Only admin roles can be created through this endpoint'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Only admin roles can be created through this endpoint' },
+        data: null
       });
     }
 
@@ -50,8 +56,10 @@ export const createAdminUser = async (req, res) => {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({
-        ok: false,
-        error: 'User with this email already exists'
+        statusCode: 400,
+        success: false,
+        error: { message: 'User with this email already exists' },
+        data: null
       });
     }
 
@@ -87,14 +95,18 @@ export const createAdminUser = async (req, res) => {
     }
 
     return res.status(201).json({
-      ok: true,
+      statusCode: 201,
+      success: true,
+      error: null,
       data: responseData
     });
   } catch (error) {
     console.error('Error creating admin user:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to create admin user'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to create admin user' },
+      data: null
     });
   }
 };
@@ -136,7 +148,9 @@ export const listAdminUsers = async (req, res) => {
     const total = await User.countDocuments(query);
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: {
         users,
         pagination: {
@@ -150,8 +164,10 @@ export const listAdminUsers = async (req, res) => {
   } catch (error) {
     console.error('Error listing admin users:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to list admin users'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to list admin users' },
+      data: null
     });
   }
 };
@@ -167,8 +183,10 @@ export const getAdminUser = async (req, res) => {
     // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid user ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid user ID' },
+        data: null
       });
     }
 
@@ -177,8 +195,10 @@ export const getAdminUser = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        ok: false,
-        error: 'User not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'User not found' },
+        data: null
       });
     }
 
@@ -186,20 +206,26 @@ export const getAdminUser = async (req, res) => {
     const adminRoles = [ROLES.ADMIN, ROLES.SUPER_ADMIN, 'admin'];
     if (!adminRoles.includes(user.role)) {
       return res.status(403).json({
-        ok: false,
-        error: 'User is not an admin'
+        statusCode: 403,
+        success: false,
+        error: { message: 'User is not an admin' },
+        data: null
       });
     }
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: user
     });
   } catch (error) {
     console.error('Error fetching admin user:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to fetch admin user'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch admin user' },
+      data: null
     });
   }
 };
@@ -250,8 +276,10 @@ export const updateAdminUser = async (req, res) => {
       });
       if (existingUser) {
         return res.status(400).json({
-          ok: false,
-          error: 'Email already in use'
+          statusCode: 400,
+          success: false,
+          error: { message: 'Email already in use' },
+          data: null
         });
       }
       user.email = email.toLowerCase();
@@ -274,14 +302,18 @@ export const updateAdminUser = async (req, res) => {
     const updatedUser = await User.findById(id).select('-passwordHash');
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: updatedUser
     });
   } catch (error) {
     console.error('Error updating admin user:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to update admin user'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to update admin user' },
+      data: null
     });
   }
 };
@@ -297,8 +329,10 @@ export const deleteAdminUser = async (req, res) => {
     // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid user ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid user ID' },
+        data: null
       });
     }
 
@@ -307,8 +341,10 @@ export const deleteAdminUser = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        ok: false,
-        error: 'User not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'User not found' },
+        data: null
       });
     }
 
@@ -316,8 +352,10 @@ export const deleteAdminUser = async (req, res) => {
     const adminRoles = [ROLES.ADMIN, ROLES.SUPER_ADMIN, 'admin'];
     if (!adminRoles.includes(user.role)) {
       return res.status(403).json({
-        ok: false,
-        error: 'User is not an admin'
+        statusCode: 403,
+        success: false,
+        error: { message: 'User is not an admin' },
+        data: null
       });
     }
 
@@ -326,7 +364,9 @@ export const deleteAdminUser = async (req, res) => {
     await user.save();
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: {
         message: 'Admin user deactivated successfully',
         userId: id
@@ -335,8 +375,10 @@ export const deleteAdminUser = async (req, res) => {
   } catch (error) {
     console.error('Error deleting admin user:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to delete admin user'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to delete admin user' },
+      data: null
     });
   }
 };

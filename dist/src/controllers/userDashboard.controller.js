@@ -43,7 +43,7 @@ export const getDashboard = async (req, res) => {
     
     if (!user) {
       return res.status(404).json(
-        errorResponse('User not found')
+        errorResponse('User not found', null, 404)
       );
     }
     
@@ -135,12 +135,12 @@ export const getDashboard = async (req, res) => {
       pagination
     };
     
-    return res.json(successResponse(dashboardData));
+    return res.status(200).json(successResponse(dashboardData, null, 200));
     
   } catch (error) {
     console.error('Error fetching user dashboard:', error);
     return res.status(500).json(
-      errorResponse('Server error')
+      errorResponse('Server error', null, 500)
     );
   }
 };
@@ -201,17 +201,17 @@ export const getOrders = async (req, res) => {
     // Build pagination metadata
     const pagination = paginationMeta(page, limit, total);
     
-    return res.json(
+    return res.status(200).json(
       successResponse({
         orders: formattedOrders,
         pagination
-      })
+      }, null, 200)
     );
     
   } catch (error) {
     console.error('Error fetching user orders:', error);
     return res.status(500).json(
-      errorResponse('Server error')
+      errorResponse('Server error', null, 500)
     );
   }
 };

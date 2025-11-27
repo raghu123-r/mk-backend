@@ -20,22 +20,28 @@ export const createQuickInvoice = async (req, res) => {
     // Validate required fields
     if (!customer || !customer.name) {
       return res.status(400).json({
-        ok: false,
-        error: 'Customer name is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Customer name is required' },
+        data: null
       });
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
-        ok: false,
-        error: 'At least one item is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'At least one item is required' },
+        data: null
       });
     }
 
     if (!total || total <= 0) {
       return res.status(400).json({
-        ok: false,
-        error: 'Total amount is required and must be greater than 0'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Total amount is required and must be greater than 0' },
+        data: null
       });
     }
 
@@ -43,8 +49,10 @@ export const createQuickInvoice = async (req, res) => {
     for (const item of items) {
       if (!item.title || !item.price || !item.qty) {
         return res.status(400).json({
-          ok: false,
-          error: 'Each item must have title, price, and qty'
+          statusCode: 400,
+          success: false,
+          error: { message: 'Each item must have title, price, and qty' },
+          data: null
         });
       }
     }
@@ -65,14 +73,18 @@ export const createQuickInvoice = async (req, res) => {
     await invoice.save();
 
     return res.status(201).json({
-      ok: true,
+      statusCode: 201,
+      success: true,
+      error: null,
       data: invoice
     });
   } catch (error) {
     console.error('Error creating quick invoice:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to create invoice'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to create invoice' },
+      data: null
     });
   }
 };
@@ -90,8 +102,10 @@ export const createInvoice = async (req, res) => {
       // Validate orderId
       if (!mongoose.Types.ObjectId.isValid(orderId)) {
         return res.status(400).json({
-          ok: false,
-          error: 'Invalid order ID'
+          statusCode: 400,
+          success: false,
+          error: { message: 'Invalid order ID' },
+          data: null
         });
       }
 
@@ -99,8 +113,10 @@ export const createInvoice = async (req, res) => {
       const order = await Order.findById(orderId).populate('user');
       if (!order) {
         return res.status(404).json({
-          ok: false,
-          error: 'Order not found'
+          statusCode: 404,
+          success: false,
+          error: { message: 'Order not found' },
+          data: null
         });
       }
 
@@ -134,7 +150,7 @@ export const createInvoice = async (req, res) => {
       await invoice.save();
 
       return res.status(201).json({
-        ok: true,
+        success: true,
         data: invoice
       });
     }
@@ -143,21 +159,21 @@ export const createInvoice = async (req, res) => {
     // Validate required fields
     if (!customer || !customer.name) {
       return res.status(400).json({
-        ok: false,
+        success: false,
         error: 'Customer name is required'
       });
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
-        ok: false,
+        success: false,
         error: 'At least one item is required'
       });
     }
 
     if (!total || total <= 0) {
       return res.status(400).json({
-        ok: false,
+        success: false,
         error: 'Total amount is required and must be greater than 0'
       });
     }
@@ -177,14 +193,18 @@ export const createInvoice = async (req, res) => {
     await invoice.save();
 
     return res.status(201).json({
-      ok: true,
+      statusCode: 201,
+      success: true,
+      error: null,
       data: invoice
     });
   } catch (error) {
     console.error('Error creating invoice:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to create invoice'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to create invoice' },
+      data: null
     });
   }
 };
@@ -200,7 +220,7 @@ export const getInvoice = async (req, res) => {
     // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
+        success: false,
         error: 'Invalid invoice ID'
       });
     }
@@ -212,19 +232,19 @@ export const getInvoice = async (req, res) => {
 
     if (!invoice) {
       return res.status(404).json({
-        ok: false,
+        success: false,
         error: 'Invoice not found'
       });
     }
 
     return res.status(200).json({
-      ok: true,
+      success: true,
       data: invoice
     });
   } catch (error) {
     console.error('Error fetching invoice:', error);
     return res.status(500).json({
-      ok: false,
+      success: false,
       error: 'Failed to fetch invoice'
     });
   }

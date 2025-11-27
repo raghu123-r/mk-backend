@@ -9,12 +9,22 @@ export const createContact = async (req, res) => {
 
     // Validate required fields
     if (!name || !phone || !email) {
-      return res.status(400).json({ ok: false, error: 'Name, mobile and email are required.' });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Name, mobile and email are required.' },
+        data: null
+      });
     }
     
     // Validate email format
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ ok: false, error: 'Invalid email address.' });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid email address.' },
+        data: null
+      });
     }
 
     // Create contact submission with mobile field (map from phone)
@@ -33,13 +43,19 @@ export const createContact = async (req, res) => {
     console.log('   Collection:', contact.collection.name);
     console.log('   Host:', mongoose.connection.host || 'Atlas');
 
-    return res.status(201).json({ 
-      ok: true, 
-      message: 'Contact saved successfully.',
-      data: contact 
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: contact
     });
   } catch (err) {
     console.error('createContact error', err);
-    return res.status(500).json({ ok: false, error: 'Server error' });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Server error' },
+      data: null
+    });
   }
 };

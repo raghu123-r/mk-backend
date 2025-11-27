@@ -42,9 +42,13 @@ export const createOrder = async (req, res, next) => {
       );
     } catch (e) {}
     
-    res.status(201).json({ 
-      success: true, 
-      order 
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: { 
+        order 
+      }
     });
   } catch (e) { 
     next(e); 
@@ -55,7 +59,15 @@ export const createOrder = async (req, res, next) => {
 export const create = createOrder;
 
 export const mine = async (req, res, next) => {
-  try { res.json(await orderService.myOrders(req.user.id)); } catch (e) { next(e); }
+  try {
+    const data = await orderService.myOrders(req.user.id);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data
+    });
+  } catch (e) { next(e); }
 };
 
 export const validators = { createSchema };

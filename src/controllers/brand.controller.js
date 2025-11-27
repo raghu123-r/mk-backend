@@ -16,19 +16,42 @@ const updateSchema = z.object({ body: z.object({
 export const create = async (req, res, next) => {
   try {
     const b = await Brand.create(req.body);
-    res.status(201).json(b);
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: b
+    });
   } catch (e) { next(e); }
 };
 
 export const list = async (_req, res, next) => {
-  try { res.json(await Brand.find().sort({ name: 1 })); } catch (e) { next(e); }
+  try {
+    const brands = await Brand.find().sort({ name: 1 });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: brands
+    });
+  } catch (e) { next(e); }
 };
 
 export const getById = async (req, res, next) => {
   try {
     const brand = await Brand.findById(req.params.id);
-    if (!brand) return res.status(404).json({ message: 'Brand not found' });
-    res.json(brand);
+    if (!brand) return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: 'Brand not found' },
+      data: null
+    });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: brand
+    });
   } catch (e) { next(e); }
 };
 
@@ -39,16 +62,36 @@ export const update = async (req, res, next) => {
       req.body,
       { new: true, runValidators: true }
     );
-    if (!brand) return res.status(404).json({ message: 'Brand not found' });
-    res.json(brand);
+    if (!brand) return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: 'Brand not found' },
+      data: null
+    });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: brand
+    });
   } catch (e) { next(e); }
 };
 
 export const remove = async (req, res, next) => {
   try {
     const brand = await Brand.findByIdAndDelete(req.params.id);
-    if (!brand) return res.status(404).json({ message: 'Brand not found' });
-    res.json({ message: 'Brand deleted successfully' });
+    if (!brand) return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: 'Brand not found' },
+      data: null
+    });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { message: 'Brand deleted successfully' }
+    });
   } catch (e) { next(e); }
 };
 

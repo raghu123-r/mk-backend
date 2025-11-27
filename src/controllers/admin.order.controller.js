@@ -70,7 +70,9 @@ export const listOrders = async (req, res) => {
     ]);
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: orders,
       meta: {
         page: pageNum,
@@ -82,8 +84,10 @@ export const listOrders = async (req, res) => {
   } catch (error) {
     console.error('listOrders error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to fetch orders'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch orders' },
+      data: null
     });
   }
 };
@@ -98,8 +102,10 @@ export const getOrder = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid order ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid order ID' },
+        data: null
       });
     }
 
@@ -107,20 +113,26 @@ export const getOrder = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        ok: false,
-        error: 'Order not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Order not found' },
+        data: null
       });
     }
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: order
     });
   } catch (error) {
     console.error('getOrder error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to fetch order'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch order' },
+      data: null
     });
   }
 };
@@ -137,23 +149,29 @@ export const updateOrderStatus = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid order ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid order ID' },
+        data: null
       });
     }
 
     if (!status) {
       return res.status(400).json({
-        ok: false,
-        error: 'Status is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Status is required' },
+        data: null
       });
     }
 
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
-        ok: false,
-        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+        statusCode: 400,
+        success: false,
+        error: { message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
+        data: null
       });
     }
 
@@ -168,20 +186,26 @@ export const updateOrderStatus = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        ok: false,
-        error: 'Order not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Order not found' },
+        data: null
       });
     }
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: order
     });
   } catch (error) {
     console.error('updateOrderStatus error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to update order status'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to update order status' },
+      data: null
     });
   }
 };
@@ -198,15 +222,19 @@ export const assignVendorDriver = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid order ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid order ID' },
+        data: null
       });
     }
 
     if (!vendorId && !driverId) {
       return res.status(400).json({
-        ok: false,
-        error: 'At least one of vendorId or driverId is required'
+        statusCode: 400,
+        success: false,
+        error: { message: 'At least one of vendorId or driverId is required' },
+        data: null
       });
     }
 
@@ -215,8 +243,10 @@ export const assignVendorDriver = async (req, res) => {
     if (vendorId) {
       if (!mongoose.Types.ObjectId.isValid(vendorId)) {
         return res.status(400).json({
-          ok: false,
-          error: 'Invalid vendor ID'
+          statusCode: 400,
+          success: false,
+          error: { message: 'Invalid vendor ID' },
+          data: null
         });
       }
       updateFields.vendorId = vendorId;
@@ -225,8 +255,10 @@ export const assignVendorDriver = async (req, res) => {
     if (driverId) {
       if (!mongoose.Types.ObjectId.isValid(driverId)) {
         return res.status(400).json({
-          ok: false,
-          error: 'Invalid driver ID'
+          statusCode: 400,
+          success: false,
+          error: { message: 'Invalid driver ID' },
+          data: null
         });
       }
       updateFields.driverId = driverId;
@@ -240,20 +272,26 @@ export const assignVendorDriver = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        ok: false,
-        error: 'Order not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Order not found' },
+        data: null
       });
     }
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: order
     });
   } catch (error) {
     console.error('assignVendorDriver error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to assign vendor/driver'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to assign vendor/driver' },
+      data: null
     });
   }
 };
@@ -269,15 +307,19 @@ export const uploadAttachment = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid order ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid order ID' },
+        data: null
       });
     }
 
     if (!req.file) {
       return res.status(400).json({
-        ok: false,
-        error: 'No file uploaded'
+        statusCode: 400,
+        success: false,
+        error: { message: 'No file uploaded' },
+        data: null
       });
     }
 
@@ -285,8 +327,10 @@ export const uploadAttachment = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        ok: false,
-        error: 'Order not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Order not found' },
+        data: null
       });
     }
 
@@ -312,7 +356,9 @@ export const uploadAttachment = async (req, res) => {
     await order.save();
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: {
         orderId: order._id,
         attachment: attachmentData
@@ -321,8 +367,10 @@ export const uploadAttachment = async (req, res) => {
   } catch (error) {
     console.error('uploadAttachment error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to upload attachment'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to upload attachment' },
+      data: null
     });
   }
 };
@@ -337,8 +385,10 @@ export const getInvoicePayload = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid order ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid order ID' },
+        data: null
       });
     }
 
@@ -348,8 +398,10 @@ export const getInvoicePayload = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({
-        ok: false,
-        error: 'Order not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Order not found' },
+        data: null
       });
     }
 
@@ -383,14 +435,18 @@ export const getInvoicePayload = async (req, res) => {
     };
 
     return res.status(200).json({
-      ok: true,
+      statusCode: 200,
+      success: true,
+      error: null,
       data: invoicePayload
     });
   } catch (error) {
     console.error('getInvoicePayload error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to generate invoice'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to generate invoice' },
+      data: null
     });
   }
 };
@@ -409,8 +465,10 @@ export const convertQuoteToOrder = async (req, res) => {
       Quote = quoteModule.default;
     } catch (err) {
       return res.status(501).json({
-        ok: false,
-        error: 'Quote to Order conversion not implemented. TODO: Create src/models/Quote.js'
+        statusCode: 501,
+        success: false,
+        error: { message: 'Quote to Order conversion not implemented. TODO: Create src/models/Quote.js' },
+        data: null
       });
     }
 
@@ -418,8 +476,10 @@ export const convertQuoteToOrder = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
-        ok: false,
-        error: 'Invalid quote ID'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid quote ID' },
+        data: null
       });
     }
 
@@ -427,15 +487,19 @@ export const convertQuoteToOrder = async (req, res) => {
 
     if (!quote) {
       return res.status(404).json({
-        ok: false,
-        error: 'Quote not found'
+        statusCode: 404,
+        success: false,
+        error: { message: 'Quote not found' },
+        data: null
       });
     }
 
     if (quote.status === 'converted') {
       return res.status(400).json({
-        ok: false,
-        error: 'Quote already converted to order'
+        statusCode: 400,
+        success: false,
+        error: { message: 'Quote already converted to order' },
+        data: null
       });
     }
 
@@ -467,7 +531,9 @@ export const convertQuoteToOrder = async (req, res) => {
     await quote.save();
 
     return res.status(201).json({
-      ok: true,
+      statusCode: 201,
+      success: true,
+      error: null,
       data: {
         order,
         quoteId: quote._id
@@ -476,8 +542,10 @@ export const convertQuoteToOrder = async (req, res) => {
   } catch (error) {
     console.error('convertQuoteToOrder error:', error);
     return res.status(500).json({
-      ok: false,
-      error: 'Failed to convert quote to order'
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to convert quote to order' },
+      data: null
     });
   }
 };
