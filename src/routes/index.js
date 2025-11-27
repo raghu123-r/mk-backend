@@ -8,6 +8,7 @@ import orderRoutes from './order.routes.js';
 import uploadRoutes from './upload.routes.js';
 import categoryRoutes from './category.routes.js';
 import cartRoutes from './cart.routes.js';
+import couponsRoutes from './coupons.routes.js';
 
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
@@ -84,6 +85,9 @@ router.use('/user', userDashboardRoutes);
 router.use('/user', userAddressRoutes);
 
 router.use('/cart', cartRoutes);
+
+// Public coupons route
+router.use('/coupons', couponsRoutes);
 
 router.use('/brands', brandRoutes);
 router.use('/brands', brandAliases);
