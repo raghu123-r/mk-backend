@@ -45,7 +45,9 @@ export const getCart = async (req, res, next) => {
     // If no cart exists yet, return empty cart structure
     if (!cart) {
       return res.status(200).json({
+        statusCode: 200,
         success: true,
+        error: null,
         data: {
           items: [],
           total: 0
@@ -55,7 +57,9 @@ export const getCart = async (req, res, next) => {
     }
 
     return res.status(200).json({
+      statusCode: 200,
       success: true,
+      error: null,
       data: cart,
       message: 'Cart retrieved successfully'
     });
@@ -158,7 +162,9 @@ export const addToCart = async (req, res, next) => {
     await cart.save();
 
     return res.status(isNewCart ? 201 : 200).json({
+      statusCode: isNewCart ? 201 : 200,
       success: true,
+      error: null,
       data: cart,
       message: 'Item added to cart successfully'
     });
@@ -243,7 +249,9 @@ export const updateCartItem = async (req, res, next) => {
     await cart.save();
 
     return res.status(200).json({
+      statusCode: 200,
       success: true,
+      error: null,
       data: cart,
       message: qty <= 0 ? 'Item removed from cart' : 'Cart item updated successfully'
     });
@@ -302,7 +310,9 @@ export const removeCartItem = async (req, res, next) => {
     await cart.save();
 
     return res.status(200).json({
+      statusCode: 200,
       success: true,
+      error: null,
       data: cart,
       message: 'Item removed from cart successfully'
     });
@@ -334,7 +344,9 @@ export const clearCart = async (req, res, next) => {
     if (!cart) {
       // No cart exists, return empty cart response
       return res.status(200).json({
+        statusCode: 200,
         success: true,
+        error: null,
         data: {
           items: [],
           total: 0
@@ -350,7 +362,9 @@ export const clearCart = async (req, res, next) => {
     await cart.save();
 
     return res.status(200).json({
+      statusCode: 200,
       success: true,
+      error: null,
       data: cart,
       message: 'Cart cleared successfully'
     });

@@ -22,7 +22,12 @@ export const requestOtp = async (req, res, next) => {
     const { email, purpose } = req.body;
     const data = await authService.requestOtp(email, purpose);
     console.log('✅ OTP email sent to', email);
-    res.json({ message: 'OTP sent', ...data });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { message: 'OTP sent', ...data }
+    });
   } catch (e) { next(e); }
 };
 
@@ -30,7 +35,12 @@ export const verifyOtp = async (req, res, next) => {
   try {
     const { email, code, purpose, name } = req.body;
     const data = await authService.verifyOtp({ email, code, purpose, name });
-    res.json(data);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data
+    });
   } catch (e) { next(e); }
 };
 

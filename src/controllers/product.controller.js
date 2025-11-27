@@ -32,7 +32,12 @@ const listSchema = z.object({
 export const create = async (req, res, next) => {
   try {
     const product = await productService.create(req.body);
-    res.status(201).json(product);
+    return res.status(201).json({
+      statusCode: 201,
+      success: true,
+      error: null,
+      data: product
+    });
   } catch (e) {
     next(e);
   }
@@ -54,7 +59,12 @@ export const list = async (req, res, next) => {
     };
 
     const data = await productService.list(query);
-    res.json(data);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data
+    });
 
   } catch (err) {
     next(err);
@@ -66,9 +76,19 @@ export const getBySlugController = async (req, res) => {
   
   try {
     const product = await productService.getBySlug(req.params.slug);
-    res.json(product);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: product
+    });
   } catch (e) {
-    res.status(404).json({ message: "Product not found" });
+    return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: "Product not found" },
+      data: null
+    });
   }
 };
 
@@ -79,7 +99,12 @@ export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid product id' });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid product id' },
+        data: null
+      });
     }
 
     const allowed = ['title','slug','description','brand','category','images','price','mrp','stock','attributes','isActive','meta','tags'];
@@ -89,23 +114,48 @@ export const updateProduct = async (req, res) => {
     }
 
     if ('images' in updateData && !Array.isArray(updateData.images)) {
-      return res.status(400).json({ success:false, message: 'Images must be an array of URLs' });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Images must be an array of URLs' },
+        data: null
+      });
     }
 
     // call service
     const updated = await productService.updateProductById(id, updateData);
     if (!updated) {
-      return res.status(404).json({ success:false, message:'Product not found' });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: 'Product not found' },
+        data: null
+      });
     }
 
-    return res.status(200).json({ success:true, data: updated, message:'Product updated' });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: updated
+    });
   } catch (err) {
     console.error('updateProduct error', err);
     // handle duplicate slug error (E11000)
     if (err.code === 11000 && err.keyPattern && err.keyPattern.slug) {
-      return res.status(409).json({ success:false, message:'Slug already exists' });
+      return res.status(409).json({
+        statusCode: 409,
+        success: false,
+        error: { message: 'Slug already exists' },
+        data: null
+      });
     }
-    return res.status(500).json({ success:false, message:'Server error' });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Server error' },
+      data: null
+    });
   }
 };
 
@@ -116,18 +166,38 @@ export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
-      return res.status(400).json({ success:false, message:'Invalid product id' });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid product id' },
+        data: null
+      });
     }
 
     const removed = await productService.deleteProductById(id);
     if (!removed) {
-      return res.status(404).json({ success:false, message:'Product not found' });
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: 'Product not found' },
+        data: null
+      });
     }
 
-    return res.status(200).json({ success:true, data:{ _id: id }, message:'Product deleted' });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { _id: id }
+    });
   } catch (err) {
     console.error('deleteProduct error', err);
-    return res.status(500).json({ success:false, message:'Server error' });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Server error' },
+      data: null
+    });
   }
 };
 

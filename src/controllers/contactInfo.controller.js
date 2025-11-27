@@ -5,9 +5,19 @@ import ContactInfo from "../models/ContactInfo.model.js";
 export const getContactInfo = async (req, res) => {
   try {
     const info = await ContactInfo.findOne();
-    res.status(200).json(info || {});
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: info || {}
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: error.message },
+      data: null
+    });
   }
 };
 
@@ -28,12 +38,18 @@ export const updateContactInfo = async (req, res) => {
 
     await info.save();
 
-    res.status(200).json({
+    return res.status(200).json({
+      statusCode: 200,
       success: true,
-      message: "Contact info updated successfully",
-      data: info,
+      error: null,
+      data: info
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: error.message },
+      data: null
+    });
   }
 };

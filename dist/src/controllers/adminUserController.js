@@ -9,13 +9,23 @@ export const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: "Email and password required" },
+        data: null
+      });
     }
 
     const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
 
     if (!admin) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        statusCode: 401,
+        success: false,
+        error: { message: "Invalid email or password" },
+        data: null
+      });
     }
 
     // Check if passwordHash field exists - if not, auto-create it with default password 'admin123'
@@ -30,13 +40,23 @@ export const loginAdmin = async (req, res) => {
       // Now verify the provided password against the newly created hash
       const isMatch = await bcrypt.compare(password, admin.passwordHash);
       if (!isMatch) {
-        return res.status(401).json({ message: 'Invalid credentials. Default password is: admin123' });
+        return res.status(401).json({
+          statusCode: 401,
+          success: false,
+          error: { message: 'Invalid credentials. Default password is: admin123' },
+          data: null
+        });
       }
     } else {
       // Normal password verification for existing passwordHash
       const isMatch = await bcrypt.compare(password, admin.passwordHash);
       if (!isMatch) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({
+          statusCode: 401,
+          success: false,
+          error: { message: "Invalid email or password" },
+          data: null
+        });
       }
     }
 
@@ -60,30 +80,50 @@ export const loginAdmin = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
 
-    return res.json({
-      message: "Login successful",
-      token,
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-      },
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: {
+        message: "Login successful",
+        token,
+        admin: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+        }
+      }
     });
 
   } catch (err) {
     console.error("Admin login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
 // -------------------- LOGOUT --------------------
 export const logoutAdmin = async (req, res) => {
   try {
-    return res.json({ message: "Logged out successfully" });
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: { message: "Logged out successfully" }
+    });
   } catch (err) {
     console.error("Admin logout error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
 
@@ -91,10 +131,20 @@ export const logoutAdmin = async (req, res) => {
 export const listUsers = async (req, res) => {
   try {
     const admins = await Admin.find().select("-passwordHash");
-    return res.json(admins);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: admins
+    });
 
   } catch (err) {
     console.error("List users error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Server error" },
+      data: null
+    });
   }
 };
