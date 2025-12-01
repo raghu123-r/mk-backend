@@ -11,3 +11,6 @@
 .USER_DASHBOARD_API.md
 .node_modules
 node_modules
+.seed
+.scripts
+

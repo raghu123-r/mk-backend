@@ -110,6 +110,14 @@ export const loginAdmin = async (req, res) => {
 // -------------------- LOGOUT --------------------
 export const logoutAdmin = async (req, res) => {
   try {
+    // Clear the adminToken cookie
+    res.clearCookie('adminToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/'
+    });
+
     return res.status(200).json({
       statusCode: 200,
       success: true,

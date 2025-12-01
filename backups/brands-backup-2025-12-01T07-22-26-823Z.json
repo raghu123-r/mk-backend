@@ -1,0 +1,65 @@
+[
+  {
+    "_id": "690f3b01a511abaea2b6b529",
+    "name": "Home Essentials",
+    "slug": "home-essentials",
+    "__v": 0,
+    "createdAt": "2025-11-08T12:43:45.217Z",
+    "updatedAt": "2025-11-24T14:06:38.571Z",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Home+Essentials"
+  },
+  {
+    "_id": "690f3b01a511abaea2b6b528",
+    "name": "Premium Cookware",
+    "slug": "premium-cookware",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Premium+Cookware",
+    "__v": 0,
+    "createdAt": "2025-11-08T12:43:45.216Z",
+    "updatedAt": "2025-11-24T14:06:38.731Z"
+  },
+  {
+    "_id": "690f3b01a511abaea2b6b527",
+    "name": "Modern Chef",
+    "slug": "modern-chef",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Modern+Chef",
+    "__v": 0,
+    "createdAt": "2025-11-08T12:43:45.212Z",
+    "updatedAt": "2025-11-08T12:43:45.212Z"
+  },
+  {
+    "_id": "690f3b01a511abaea2b6b526",
+    "name": "Kitchen Classics",
+    "slug": "kitchen-classics",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Kitchen+Classics",
+    "__v": 0,
+    "createdAt": "2025-11-08T12:43:45.210Z",
+    "updatedAt": "2025-11-08T12:43:45.210Z"
+  },
+  {
+    "_id": "6924666ec91012fb506ce9d6",
+    "slug": "bake-master",
+    "__v": 0,
+    "createdAt": "2025-11-24T14:06:38.881Z",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Bake+Master",
+    "name": "Bake Master",
+    "updatedAt": "2025-11-26T16:57:31.282Z"
+  },
+  {
+    "_id": "6924666fc91012fb506ce9d7",
+    "slug": "storage-solutions",
+    "__v": 0,
+    "createdAt": "2025-11-24T14:06:39.006Z",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Storage+Solutions",
+    "name": "Storage Solutions",
+    "updatedAt": "2025-11-24T14:06:39.006Z"
+  },
+  {
+    "_id": "6924666fc91012fb506ce9d8",
+    "slug": "kitchen-tools-co",
+    "__v": 0,
+    "createdAt": "2025-11-24T14:06:39.060Z",
+    "logoUrl": "https://via.placeholder.com/150x50?text=Kitchen+Tools+Co",
+    "name": "Kitchen Tools Co",
+    "updatedAt": "2025-11-24T14:06:39.060Z"
+  }
+]
