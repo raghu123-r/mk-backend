@@ -13,6 +13,9 @@ import { requireAuth, requireAdmin } from '../middlewares/auth.js';
 // PRODUCTS controller
 import * as adminProductCtrl from '../controllers/adminProductController.js';
 
+// COUPONS routes
+import couponRoutes from './admin.coupon.routes.js';
+
 const router = express.Router();
 
 // ---------------- AUTH ------------------
@@ -30,5 +33,8 @@ router.delete('/products/:id', requireAuth, requireAdmin, adminProductCtrl.delet
 
 // ---------------- USERS ------------------
 router.get('/users', requireAuth, requireAdmin, listUsers);
+
+// ---------------- COUPONS ------------------
+router.use('/coupons', couponRoutes);
 
 export default router;

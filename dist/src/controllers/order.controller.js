@@ -18,7 +18,8 @@ const createSchema = z.object({
       country: z.string().optional(),
       pincode: z.string()
     }),
-    paymentMethod: z.string().optional().default('COD')
+    paymentMethod: z.string().optional().default('COD'),
+    couponCode: z.string().optional()
   })
 });
 
@@ -32,7 +33,8 @@ export const createOrder = async (req, res, next) => {
       userId: req.user.id, 
       items: req.body.items,
       address: req.body.address,
-      paymentMethod: req.body.paymentMethod || 'COD'
+      paymentMethod: req.body.paymentMethod || 'COD',
+      couponCode: req.body.couponCode
     });
     
     try {

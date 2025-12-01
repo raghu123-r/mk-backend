@@ -16,6 +16,13 @@ const orderSchema = new mongoose.Schema({
   tax: Number,
   total: Number,
 
+  // Coupon fields
+  couponCode: { type: String, default: null },
+  discountAmount: { type: Number, default: 0 },
+  appliedCoupon: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon', default: null },
+  originalTotal: Number, // Total before discount
+  finalTotal: Number, // Total after discount (same as total if no coupon)
+
   // ----- CORRECT: root-level order status with full enum -----
   status: {
     type: String,

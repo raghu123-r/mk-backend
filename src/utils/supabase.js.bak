@@ -1,0 +1,28 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import { createClient } from "@supabase/supabase-js";
+
+const URL = process.env.SUPABASE_URL;
+const KEY = process.env.SUPABASE_ANON_KEY;
+const BUCKET = process.env.SUPABASE_BUCKET || "product-images";
+
+let client = null;
+
+if (!URL || !KEY) {
+  console.warn("⚠️ Supabase not fully configured! Missing SUPABASE_URL or SUPABASE_ANON_KEY.");
+} else {
+  client = createClient(URL, KEY);
+}
+
+export const supabase = client;
+
+/**
+ * Return the public URL for a storage path inside bucket, or null.
+ * Example path: 'brands/kitchen-tools-co/logo.png'
+ */
+export const getPublicUrl = (path) => {
+  if (!client) return null;
+  const { data } = client.storage.from(BUCKET).getPublicUrl(path);
+  return data?.publicUrl || null;
+};
