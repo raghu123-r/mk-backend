@@ -16,6 +16,9 @@ import adminProductRoutes from "./src/routes/adminProductRoutes.js";
 
 const app = express();
 
+// ✅ Trust proxy for rate-limiting behind reverse proxy/load balancer
+app.set('trust proxy', 1);
+
 // ✅ Ensure Express parses query strings as plain objects
 app.set('query parser', 'simple');
 
@@ -39,10 +42,17 @@ app.use((req, _res, next) => {
 // 🛡 Security middlewares
 app.use(helmet());
 
-// ✅ CORS with credentials for admin authentication
+// ✅ CORS with env-driven allowed origins and credentials
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,https://kk-frontend-seven.vercel.app')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    return allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('CORS: Origin not allowed'));
+  },
+  credentials: true
 }));
 
 app.use(morgan('dev'));
