@@ -17,6 +17,19 @@ const signTokens = (userId, role) => {
 };
 
 export const requestOtp = async (email, purpose='login') => {
+  // 🔧 DEV-ONLY: Mock OTP for testing (skip email sending)
+  if (process.env.FORCE_MOCK_OTP === 'true') {
+    const mockOtp = '123456';
+    const otpHash = await hashOTP(mockOtp);
+    await OtpToken.create({
+      email,
+      purpose,
+      otpHash,
+      expiresAt: expiresAt()
+    });
+    return { ok: true, debug: true, otp: mockOtp, message: 'Mock OTP created (dev mode)' };
+  }
+
   const code = generateOTP(6);
   
   // Hash OTP with bcrypt before storing (NEVER store plain text OTP)
