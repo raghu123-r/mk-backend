@@ -46,15 +46,11 @@ router.post('/logout', (req, res) => {
  * Cookie-based admin verification endpoint
  * Returns admin user details if authenticated with valid adminToken cookie
  */
-router.get('/verify', requireAuth, requireAdmin, (req, res) => {
+// REMOVED_VERIFY_BY_COPILOT — verify handler removed per dev request. Rollback: restore original requireAuth, requireAdmin middleware and user details logic.
+router.get('/verify', (req, res) => {
   return res.json({
     ok: true,
-    user: {
-      _id: req.user._id,
-      email: req.user.email,
-      name: req.user.name,
-      role: req.user.role
-    }
+    data: { message: "verify removed" }
   });
 });
 

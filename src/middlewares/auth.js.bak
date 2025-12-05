@@ -12,7 +12,7 @@ export const protect = async (req, _res, next) => {
   if (!token) return next(createError(401, 'Not authenticated'));
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     // Handle both token formats: {sub: userId} and {id: userId}
     const userId = payload.sub || payload.id;
     const user = await User.findById(userId);
@@ -41,7 +41,7 @@ export const requireAuth = async (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     
     // Handle both token formats: {sub: userId} and {id: userId}
     const userId = payload.sub || payload.id;
