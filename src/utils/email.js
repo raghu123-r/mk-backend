@@ -39,9 +39,7 @@ function getTransporter() {
       user: EMAIL_USER,
       pass: EMAIL_APP_PASSWORD
     },
-    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 5000),
-    greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 3000),
-    socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 5000)
+    
   });
 }
 // --- END REPLACEMENT ---
