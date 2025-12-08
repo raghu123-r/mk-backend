@@ -5,7 +5,7 @@
  * Environment Variables Required:
  * - EMAIL_USER: Your Gmail address
  * - EMAIL_APP_PASSWORD: 16-digit Google App Password (not your regular password)
- * - APP_URL: Frontend URL (e.g., http://localhost:3000)
+ * - APP_URL: Frontend URL (e.g., http://localhost:3000
  * 
  * Setup Gmail App Password:
  * 1. Go to Google Account → Security
