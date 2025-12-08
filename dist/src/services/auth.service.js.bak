@@ -11,8 +11,8 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
 const signTokens = (userId, role) => {
-  const access = jwt.sign({ sub: userId, role }, process.env.JWT_SECRET || 'secretkey', { expiresIn: JWT_EXPIRES_IN });
-  const refresh = jwt.sign({ sub: userId, role, typ: 'refresh' }, process.env.JWT_SECRET || 'secretkey', { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  const access = jwt.sign({ sub: userId, role }, process.env.JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const refresh = jwt.sign({ sub: userId, role, typ: 'refresh' }, process.env.JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
   return { access, refresh };
 };
 
