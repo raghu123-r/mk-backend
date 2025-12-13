@@ -42,16 +42,13 @@ app.use((req, _res, next) => {
 app.use(helmet());
 
 // ✅ CORS with env-driven allowed origins and credentials
-const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
-  "http://localhost:3000,https://kk-frontend-seven.vercel.app",
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000",
+"https://kkfrontend.vercel.app/",
+"https://kk-frontend-seven.vercel.app",
 "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
 "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
 "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
-"https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/",
-"https://kkfrontend.vercel.app/")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+"https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/")
 
 // app.use(
 //   cors({
@@ -65,27 +62,18 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
 //     credentials: true,
 //   })
 // );
-app.use(cors({
-  origin: ("https://kkfrontend.vercel.app",
-      "http://localhost:3000,https://kk-frontend-seven.vercel.app",
-      "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
-      "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
-      "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
-      "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/"), // <-- exact origin of your deployed frontend
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  credentials: true // if you need cookies/auth
-}));
-
-app.options(
-  "*",
+app.use(
   cors({
-    origin:
-      ("https://kkfrontend.vercel.app",
-      "http://localhost:3000,https://kk-frontend-seven.vercel.app",
-      "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
-      "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
-      "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
-      "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/"),
+    origin: function (origin, callback) {
+      // allow server-to-server, curl, postman
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   })
