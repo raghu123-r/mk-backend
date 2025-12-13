@@ -3,7 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import xss from "xss-clean";
 import rateLimit from "express-rate-limit";
 
 import routes from "./src/routes/index.js";
@@ -49,7 +48,6 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
-app.use(xss());
 app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 /* ================================
