@@ -11,10 +11,7 @@ import { notFound, errorHandler } from "./src/middlewares/error.js";
 import contactRoutes from "./src/routes/contact.routes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import adminProductRoutes from "./src/routes/adminProductRoutes.js";
-
-const cors = require('cors');
-
-const app = express();
+import cors from "cors";
 
 // ✅ Trust proxy for rate-limiting behind reverse proxy/load balancer
 app.set("trust proxy", 1);
