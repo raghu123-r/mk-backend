@@ -14,9 +14,6 @@ import "./src/config/db.js";
 
 const cors = require('cors');
 
-
-const app = express();
-
 // allow only your Vercel frontend (better security than "*")
 app.use(cors({
   origin: ("https://kkfrontend.vercel.app",
