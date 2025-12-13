@@ -5,7 +5,7 @@
  * Environment Variables Required:
  * - EMAIL_USER: Your Gmail address
  * - EMAIL_APP_PASSWORD: 16-digit Google App Password (not your regular password)
- * - APP_URL: Frontend URL (e.g., http://localhost:3000)
+ * - APP_URL: Frontend URL (e.g., http://localhost:3000
  * 
  * Setup Gmail App Password:
  * 1. Go to Google Account → Security
@@ -39,9 +39,7 @@ function getTransporter() {
       user: EMAIL_USER,
       pass: EMAIL_APP_PASSWORD
     },
-    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 5000),
-    greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 3000),
-    socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 5000)
+    
   });
 }
 // --- END REPLACEMENT ---

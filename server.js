@@ -9,12 +9,19 @@ console.log(
 );
 
 import { createServer } from "http";
+import cors from "cors";
 import app from "./app.js";
 import "./src/config/db.js";
 
-const PORT = process.env.PORT || 5001;
+/* ---------- CORS (FIXED & MODERN) ---------- */
+app.use(cors({
+  origin: "https://kkfrontend.vercel.app",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+}));
+/* ------------------------------------------ */
 
-// Routes are already mounted in app.js - no need to mount again here
+const PORT = process.env.PORT || 5001;
 
 const server = createServer(app);
 
