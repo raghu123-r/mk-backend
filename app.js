@@ -13,6 +13,8 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 import adminProductRoutes from "./src/routes/adminProductRoutes.js";
 import cors from "cors";
 
+const app = express();
+
 // ✅ Trust proxy for rate-limiting behind reverse proxy/load balancer
 app.set("trust proxy", 1);
 
