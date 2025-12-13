@@ -1,6 +1,5 @@
 // src/app.js — fully updated middleware setup
 import express from "express";
-import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -12,6 +11,8 @@ import { notFound, errorHandler } from "./src/middlewares/error.js";
 import contactRoutes from "./src/routes/contact.routes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import adminProductRoutes from "./src/routes/adminProductRoutes.js";
+
+const cors = require('cors');
 
 const app = express();
 
@@ -46,22 +47,47 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
   "http://localhost:3000,https://kk-frontend-seven.vercel.app",
 "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
 "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
-'https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/',
-'https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/',
+"https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
+"https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/",
 "https://kkfrontend.vercel.app/")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       // Allow requests with no origin (like mobile apps or curl requests)
+//       if (!origin) return callback(null, true);
+//       return allowedOrigins.includes(origin)
+//         ? callback(null, true)
+//         : callback(new Error("CORS: Origin not allowed"));
+//     },
+//     credentials: true,
+//   })
+// );
+app.use(cors({
+  origin: ("https://kkfrontend.vercel.app",
+      "http://localhost:3000,https://kk-frontend-seven.vercel.app",
+      "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
+      "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
+      "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
+      "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/"), // <-- exact origin of your deployed frontend
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  credentials: true // if you need cookies/auth
+}));
+
+app.options(
+  "*",
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      return allowedOrigins.includes(origin)
-        ? callback(null, true)
-        : callback(new Error("CORS: Origin not allowed"));
-    },
+    origin:
+      ("https://kkfrontend.vercel.app",
+      "http://localhost:3000,https://kk-frontend-seven.vercel.app",
+      "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
+      "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
+      "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/",
+      "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/"),
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
