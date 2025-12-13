@@ -3,7 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import xss from "xss-clean";
 import rateLimit from "express-rate-limit";
 
 import routes from "./src/routes/index.js";
