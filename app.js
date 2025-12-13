@@ -47,6 +47,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
 "kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
 "kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
 'https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app/',
+'https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app/',
 "https://kkfrontend.vercel.app/")
   .split(",")
   .map((s) => s.trim())
