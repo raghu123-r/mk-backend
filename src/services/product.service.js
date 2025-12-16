@@ -49,18 +49,27 @@ export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) =>
 
   const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
-    Product.find(filter)
-      .populate('brand category')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit),
+  // Fetch products with populated brand and category
+  const items = await Product.find(filter)
+    .populate('brand category')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-    Product.countDocuments(filter),
-  ]);
+  // Filter out products where brand is disabled (business rule: disabled brands should not appear)
+  // Categories can be disabled but products remain valid
+  const filteredItems = items.filter(item => {
+    // If brand is populated and has isActive field, check if it's active
+    if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
+      return item.brand.isActive !== false;
+    }
+    return true; // If brand not populated or no isActive field, keep the product
+  });
+
+  const total = await Product.countDocuments(filter);
 
   return {
-    items,
+    items: filteredItems,
     total,
     page,
     pages: Math.ceil(total / limit),
@@ -73,6 +82,13 @@ export const getBySlug = async (slug) => {
     .populate('brand category');
 
   if (!product) throw createError(404, 'Product not found');
+
+  // Check if brand is disabled (business rule: disabled brands should not appear)
+  if (product.brand && typeof product.brand === 'object' && 'isActive' in product.brand) {
+    if (product.brand.isActive === false) {
+      throw createError(404, 'Product not found');
+    }
+  }
 
   return product;
 };

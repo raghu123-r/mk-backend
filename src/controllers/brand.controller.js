@@ -1,6 +1,7 @@
 // kk-backend/src/controllers/brand.controller.js
 import { z } from 'zod';
 import Brand from '../models/Brand.js';
+import Product from '../models/Product.js';
 import mongoose from 'mongoose';
 import url from 'url';
 import { getPublicUrlForPath, supabaseAdmin } from '../lib/supabaseAdmin.js';
@@ -248,6 +249,21 @@ export const create = async (req, res, next) => {
 
 export const list = async (_req, res, next) => {
   try {
+    // Public endpoint: only return active brands
+    const brands = await Brand.find({ isActive: true }).sort({ name: 1 }).lean();
+    const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapped
+    });
+  } catch (e) { next(e); }
+};
+
+export const listAll = async (_req, res, next) => {
+  try {
+    // Admin endpoint: return ALL brands including disabled ones
     const brands = await Brand.find().sort({ name: 1 }).lean();
     const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
     return res.status(200).json({
@@ -269,6 +285,16 @@ export const getById = async (req, res, next) => {
       error: { message: 'Brand not found' },
       data: null
     });
+
+    // Public endpoint: only return if active
+    if (!brand.isActive) {
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: 'Brand not found' },
+        data: null
+      });
+    }
 
     const mapped = await mapBrandForResponseAsync(brand);
     return res.status(200).json({
@@ -313,6 +339,17 @@ export const update = async (req, res, next) => {
 
 export const remove = async (req, res, next) => {
   try {
+    // Check if any products exist under this brand
+    const productCount = await Product.countDocuments({ brand: req.params.id });
+    if (productCount > 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: `Cannot delete brand. ${productCount} product(s) exist under this brand. Please disable the brand instead.` },
+        data: null
+      });
+    }
+
     const brand = await Brand.findByIdAndDelete(req.params.id);
     if (!brand) return res.status(404).json({
       statusCode: 404,
@@ -325,6 +362,52 @@ export const remove = async (req, res, next) => {
       success: true,
       error: null,
       data: { message: 'Brand deleted successfully' }
+    });
+  } catch (e) { next(e); }
+};
+
+export const disable = async (req, res, next) => {
+  try {
+    const brand = await Brand.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true, runValidators: true }
+    );
+    if (!brand) return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: 'Brand not found' },
+      data: null
+    });
+    const mapped = await mapBrandForResponseAsync(brand);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapped
+    });
+  } catch (e) { next(e); }
+};
+
+export const enable = async (req, res, next) => {
+  try {
+    const brand = await Brand.findByIdAndUpdate(
+      req.params.id,
+      { isActive: true },
+      { new: true, runValidators: true }
+    );
+    if (!brand) return res.status(404).json({
+      statusCode: 404,
+      success: false,
+      error: { message: 'Brand not found' },
+      data: null
+    });
+    const mapped = await mapBrandForResponseAsync(brand);
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapped
     });
   } catch (e) { next(e); }
 };

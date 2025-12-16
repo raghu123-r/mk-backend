@@ -1,5 +1,6 @@
 // controllers/category.controller.js
 import Category from "../models/Category.js";
+import Product from "../models/Product.js";
 
 const mapCategory = (c) => ({
   _id: c._id,
@@ -8,6 +9,7 @@ const mapCategory = (c) => ({
   description: c.description || "",
   image: c.image || "",
   image_url: c.image_url || c.image || "",
+  isActive: c.isActive !== undefined ? c.isActive : true,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
@@ -15,6 +17,39 @@ const mapCategory = (c) => ({
 // Get all categories
 export const getCategories = async (req, res) => {
   try {
+    // Public endpoint: only return active categories
+    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
+
+    // Fix missing slugs in old records
+    const updated = [];
+    for (const c of categories) {
+      if (!c.slug) {
+        c.slug = c.name.toLowerCase().replace(/\s+/g, "-");
+        await c.save();
+      }
+      updated.push(mapCategory(c));
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: updated
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Failed to fetch categories", details: error },
+      data: null
+    });
+  }
+};
+
+// Get all categories (including disabled) - Admin only
+export const getAllCategories = async (req, res) => {
+  try {
+    // Admin endpoint: return ALL categories
     const categories = await Category.find().sort({ name: 1 });
 
     // Fix missing slugs in old records
@@ -54,6 +89,16 @@ export const getCategoryById = async (req, res) => {
         error: { message: "Category not found" },
         data: null
       });
+
+    // Public endpoint: only return if active
+    if (!category.isActive) {
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
+    }
 
     if (!category.slug) {
       category.slug = category.name.toLowerCase().replace(/\s+/g, "-");
@@ -163,6 +208,72 @@ export const deleteCategory = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: "Error deleting category", details: error },
+      data: null
+    });
+  }
+};
+
+// Disable category (soft delete - preferred method)
+export const disableCategory = async (req, res) => {
+  try {
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true, runValidators: true }
+    );
+    
+    if (!category)
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapCategory(category)
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Error disabling category", details: error },
+      data: null
+    });
+  }
+};
+
+// Enable category
+export const enableCategory = async (req, res) => {
+  try {
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      { isActive: true },
+      { new: true, runValidators: true }
+    );
+    
+    if (!category)
+      return res.status(404).json({
+        statusCode: 404,
+        success: false,
+        error: { message: "Category not found" },
+        data: null
+      });
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: mapCategory(category)
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: "Error enabling category", details: error },
       data: null
     });
   }
