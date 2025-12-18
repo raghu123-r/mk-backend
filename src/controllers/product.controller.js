@@ -202,3 +202,34 @@ export const deleteProduct = async (req, res) => {
 };
 
 export const validators = { createSchema, listSchema };
+
+/**
+ * GET /api/products/:id/similar
+ * Get similar products based on category first, then brand
+ */
+export const getSimilarProducts = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Invalid product id' },
+        data: null
+      });
+    }
+
+    const limit = parseInt(req.query.limit) || 4;
+    const similarProducts = await productService.getSimilarProducts(id, limit);
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: similarProducts
+    });
+  } catch (err) {
+    next(err);
+  }
+};

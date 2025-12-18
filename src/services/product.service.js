@@ -104,3 +104,68 @@ export const deleteProductById = async (id) => {
   const removed = await Product.findByIdAndDelete(id).lean();
   return removed;
 };
+
+// GET SIMILAR PRODUCTS
+// Fetches similar products based on category first, then brand as fallback
+// Excludes the current product from results
+export const getSimilarProducts = async (productId, limit = 4) => {
+  // Get the current product
+  const currentProduct = await Product.findById(productId).select('category brand');
+  if (!currentProduct) {
+    throw createError(404, 'Product not found');
+  }
+
+  const results = [];
+
+  // 1. Try to fetch by SAME CATEGORY first
+  if (currentProduct.category) {
+    const categoryProducts = await Product.find({
+      category: currentProduct.category,
+      _id: { $ne: productId }, // Exclude current product
+      isActive: true
+    })
+      .populate('brand category')
+      .limit(limit)
+      .lean();
+
+    // Filter out products with disabled brands
+    const validCategoryProducts = categoryProducts.filter(item => {
+      if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
+        return item.brand.isActive !== false;
+      }
+      return true;
+    });
+
+    results.push(...validCategoryProducts);
+  }
+
+  // 2. If we still need more products, fetch by SAME BRAND as fallback
+  if (results.length < limit && currentProduct.brand) {
+    const remaining = limit - results.length;
+    const brandProducts = await Product.find({
+      brand: currentProduct.brand,
+      _id: { $ne: productId }, // Exclude current product
+      isActive: true
+    })
+      .populate('brand category')
+      .limit(remaining)
+      .lean();
+
+    // Filter out products with disabled brands and avoid duplicates
+    const resultIds = new Set(results.map(p => p._id.toString()));
+    const validBrandProducts = brandProducts.filter(item => {
+      const itemId = item._id.toString();
+      if (resultIds.has(itemId)) return false;
+      
+      if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
+        return item.brand.isActive !== false;
+      }
+      return true;
+    });
+
+    results.push(...validBrandProducts);
+  }
+
+  // Return limited results
+  return results.slice(0, limit);
+};
