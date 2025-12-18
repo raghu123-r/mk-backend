@@ -12,7 +12,8 @@ export const uploadImage = async (req, res, next) => {
       error: { message: 'No file' },
       data: null
     });
-    const url = await uploadService.uploadImageBuffer(req.file.buffer, req.file.originalname);
+    const folder = req.query.folder || req.body.folder || 'products';
+    const url = await uploadService.uploadImageBuffer(req.file.buffer, req.file.originalname, folder);
     return res.status(200).json({
       statusCode: 200,
       success: true,
@@ -28,12 +29,6 @@ export const uploadImage = async (req, res, next) => {
  */
 export const uploadFiles = async (req, res, next) => {
   try {
-    // TODO: Remove debug log after testing
-    console.log('[DEBUG] Admin upload request received');
-    console.log('[DEBUG] Files:', req.files ? req.files.length : 0);
-    console.log('[DEBUG] Single file:', req.file ? 'yes' : 'no');
-    
-    // Handle both single file and multiple files
     const files = req.files || (req.file ? [req.file] : []);
     
     if (files.length === 0) {
@@ -45,8 +40,32 @@ export const uploadFiles = async (req, res, next) => {
       });
     }
     
-    // Upload to Supabase storage under product-images/products/
-    const uploadedFiles = await uploadService.uploadMultipleFiles(files, 'products');
+    const folder = req.query.folder || req.body.folder;
+    
+    if (!folder) {
+      return res.status(400).json({
+        ok: false,
+        success: false,
+        error: 'Upload folder is required. Allowed folders: products, brands, categories',
+        data: null
+      });
+    }
+    
+    const options = {};
+    if (folder === 'brands') {
+      const slug = req.query.slug || req.body.slug;
+      if (!slug) {
+        return res.status(400).json({
+          ok: false,
+          success: false,
+          error: 'Brand slug is required when uploading to brands folder',
+          data: null
+        });
+      }
+      options.slug = slug;
+    }
+    
+    const uploadedFiles = await uploadService.uploadMultipleFiles(files, folder, options);
     
     return res.status(200).json({
       ok: true,
