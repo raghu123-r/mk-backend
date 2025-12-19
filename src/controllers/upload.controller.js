@@ -65,6 +65,19 @@ export const uploadFiles = async (req, res, next) => {
       options.slug = slug;
     }
     
+    if (folder === 'categories') {
+      const slug = req.query.slug || req.body.slug;
+      const name = req.query.name || req.body.name;
+      
+      // Pass slug if provided, otherwise pass name for auto-generation
+      if (slug) {
+        options.slug = slug;
+      } else if (name) {
+        options.name = name;
+      }
+      // If neither provided, service will generate fallback slug
+    }
+    
     const uploadedFiles = await uploadService.uploadMultipleFiles(files, folder, options);
     
     return res.status(200).json({
