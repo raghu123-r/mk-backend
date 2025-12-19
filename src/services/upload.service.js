@@ -51,6 +51,10 @@ export const uploadMultipleFiles = async (files, folder, options = {}) => {
   if (folder === 'brands' && !options.slug) {
     throw new Error('Brand slug is required when uploading to brands folder');
   }
+  
+  if (folder === 'categories' && !options.slug) {
+    throw new Error('Category slug is required when uploading to categories folder');
+  }
 
   const results = [];
   
@@ -64,6 +68,10 @@ export const uploadMultipleFiles = async (files, folder, options = {}) => {
       const ext = safeName.split('.').pop();
       const filename = `logo-${timestamp}-${randomSuffix}.${ext}`;
       path = `brands/${options.slug}/${filename}`;
+    } else if (folder === 'categories') {
+      const ext = safeName.split('.').pop();
+      const filename = `image-${timestamp}-${randomSuffix}.${ext}`;
+      path = `categories/${options.slug}/${filename}`;
     } else {
       const filename = `${timestamp}-${randomSuffix}-${safeName}`;
       path = `${folder}/${filename}`;
@@ -113,6 +121,11 @@ export const listUploadedFiles = async (folder = 'products', limit = 50) => {
     // For brands folder, we need to list files from nested subfolders
     if (folder === 'brands') {
       return await listBrandImages(limit);
+    }
+    
+    // For categories folder, we need to list files from nested subfolders
+    if (folder === 'categories') {
+      return await listCategoryImages(limit);
     }
     
     // For other folders (products, etc.), use simple listing
@@ -213,6 +226,86 @@ async function listBrandImages(limit = 50) {
     for (const file of files || []) {
       if (imageExtensions.test(file.name)) {
         const path = `brands/${brandSlug}/${file.name}`;
+        allFiles.push({
+          url: getPublicUrl(path),
+          path,
+          name: file.name,
+          size: file.metadata?.size || 0,
+          createdAt: file.created_at
+        });
+      }
+    }
+    
+    // Stop if we've reached the limit
+    if (allFiles.length >= limit) break;
+  }
+  
+  // Sort by creation date (most recent first) and limit
+  return allFiles
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+}
+
+/**
+ * List category images from nested category folders
+ * Categories are stored as: categories/<category-slug>/image.png
+ * This function lists all subfolders and their image files
+ * @param {number} limit - Max number of files to return
+ * @returns {Promise<Array>} Array of file metadata
+ */
+async function listCategoryImages(limit = 50) {
+  const allFiles = [];
+  const imageExtensions = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
+  
+  // First, list all category folders
+  const { data: categoryFolders, error: folderError } = await supabaseAdmin
+    .storage
+    .from(BUCKET)
+    .list('categories', {
+      limit: 200,
+      offset: 0
+    });
+  
+  if (folderError) throw folderError;
+  
+  // For each category folder, list its files
+  for (const folder of categoryFolders || []) {
+    // Skip if it's a file (not a folder)
+    const isFolder = !folder.metadata || Object.keys(folder.metadata).length === 0;
+    if (!isFolder) {
+      // It's a file directly in categories/ folder (flat structure)
+      if (imageExtensions.test(folder.name)) {
+        const path = `categories/${folder.name}`;
+        allFiles.push({
+          url: getPublicUrl(path),
+          path,
+          name: folder.name,
+          size: folder.metadata?.size || 0,
+          createdAt: folder.created_at
+        });
+      }
+      continue;
+    }
+    
+    // List files inside this category folder
+    const categorySlug = folder.name;
+    const { data: files, error: filesError } = await supabaseAdmin
+      .storage
+      .from(BUCKET)
+      .list(`categories/${categorySlug}`, {
+        limit: 10,
+        offset: 0
+      });
+    
+    if (filesError) {
+      console.error(`[WARN] Failed to list files in categories/${categorySlug}:`, filesError.message);
+      continue;
+    }
+    
+    // Add image files from this category folder
+    for (const file of files || []) {
+      if (imageExtensions.test(file.name)) {
+        const path = `categories/${categorySlug}/${file.name}`;
         allFiles.push({
           url: getPublicUrl(path),
           path,
