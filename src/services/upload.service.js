@@ -12,6 +12,39 @@ function validateFolder(folder) {
   }
 }
 
+/**
+ * Generate a safe slug from text
+ * @param {string} text - Text to slugify
+ * @returns {string} Slugified text
+ */
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+}
+
+/**
+ * Generate a slug for categories when not provided
+ * @param {Object} options - Options object that may contain name or other data
+ * @returns {string} Generated slug
+ */
+function generateCategorySlug(options = {}) {
+  // Try to use category name if provided
+  if (options.name) {
+    const generatedSlug = slugify(options.name);
+    if (generatedSlug) {
+      return generatedSlug;
+    }
+  }
+  
+  // Fallback to timestamp-based slug
+  return `category-${Date.now()}`;
+}
+
 export const uploadImageBuffer = async (buffer, filename, folder, options = {}) => {
   validateFolder(folder);
   
@@ -52,8 +85,10 @@ export const uploadMultipleFiles = async (files, folder, options = {}) => {
     throw new Error('Brand slug is required when uploading to brands folder');
   }
   
+  // For categories, auto-generate slug if missing
   if (folder === 'categories' && !options.slug) {
-    throw new Error('Category slug is required when uploading to categories folder');
+    options.slug = generateCategorySlug(options);
+    console.log(`[INFO] Auto-generated category slug: ${options.slug}`);
   }
 
   const results = [];
