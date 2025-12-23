@@ -261,16 +261,59 @@ export const list = async (_req, res, next) => {
   } catch (e) { next(e); }
 };
 
-export const listAll = async (_req, res, next) => {
+export const listAll = async (req, res, next) => {
   try {
     // Admin endpoint: return ALL brands including disabled ones
-    const brands = await Brand.find().sort({ name: 1 }).lean();
+    const {
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    // Support large limits for backward compatibility (e.g., 9999 for "all")
+    // If no pagination params or limit is very large, return all brands
+    const usePagination = pageNum > 0 && limitNum > 0 && limitNum <= 100;
+
+    if (!usePagination) {
+      // Backward compatibility: return all brands
+      const brands = await Brand.find().sort({ createdAt: -1 }).lean();
+      const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
+      return res.status(200).json({
+        statusCode: 200,
+        success: true,
+        error: null,
+        data: mapped
+      });
+    }
+
+    // Paginated response
+    const skip = (pageNum - 1) * limitNum;
+
+    const [brands, total] = await Promise.all([
+      Brand.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Brand.countDocuments()
+    ]);
+
+    const totalPages = Math.ceil(total / limitNum);
     const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
+
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: mapped
+      data: {
+        brands: mapped,
+        total,
+        page: pageNum,
+        totalPages,
+        limit: limitNum
+      }
     });
   } catch (e) { next(e); }
 };
