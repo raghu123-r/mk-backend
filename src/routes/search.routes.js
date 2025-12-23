@@ -10,23 +10,56 @@ router.get("/products", async (req, res) => {
   try {
     const q = req.query.q || "";
 
-    // FIX: Product model uses "title" field, not "name"
-    // Search in title, slug, and description for better results
-    const products = await Product.find({
-      $or: [
-        { title: { $regex: q, $options: "i" } },
-        { slug: { $regex: q, $options: "i" } },
-        { description: { $regex: q, $options: "i" } },
-      ],
-      isActive: true,
-    })
-      .populate("brand", "name slug logoUrl")
-      .populate("category", "name slug")
-      .limit(50);
+    // Use aggregation to filter by brand.isActive at query time
+    const pipeline = [
+      {
+        $match: {
+          $or: [
+            { title: { $regex: q, $options: "i" } },
+            { slug: { $regex: q, $options: "i" } },
+            { description: { $regex: q, $options: "i" } },
+          ],
+          isActive: true,
+        }
+      },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brandData",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryData",
+        },
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ["$brandData", 0] },
+          category: { $arrayElemAt: ["$categoryData", 0] },
+        },
+      },
+      {
+        $match: {
+          $or: [
+            { brand: { $exists: false } },
+            { "brand.isActive": { $ne: false } },
+          ],
+        },
+      },
+      { $limit: 50 },
+    ];
+
+    const products = await Product.aggregate(pipeline);
 
     // Add source metadata for frontend
     const productsWithSource = products.map((p) => ({
-      ...p.toObject(),
+      ...p,
       source: "product",
     }));
 
@@ -47,23 +80,58 @@ router.get("/brands", async (req, res) => {
         { name: { $regex: q, $options: "i" } },
         { slug: { $regex: q, $options: "i" } },
       ],
+      isActive: true,
     }).limit(20);
 
-    // For each brand, also fetch associated products
+    // For each brand, fetch associated products using aggregation
     const brandsWithProducts = await Promise.all(
       brands.map(async (brand) => {
-        const products = await Product.find({
-          brand: brand._id,
-          isActive: true,
-        })
-          .populate("brand", "name slug logoUrl")
-          .populate("category", "name slug")
-          .limit(20);
+        const pipeline = [
+          {
+            $match: {
+              brand: brand._id,
+              isActive: true,
+            }
+          },
+          {
+            $lookup: {
+              from: "brands",
+              localField: "brand",
+              foreignField: "_id",
+              as: "brandData",
+            },
+          },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryData",
+            },
+          },
+          {
+            $addFields: {
+              brand: { $arrayElemAt: ["$brandData", 0] },
+              category: { $arrayElemAt: ["$categoryData", 0] },
+            },
+          },
+          {
+            $match: {
+              $or: [
+                { brand: { $exists: false } },
+                { "brand.isActive": { $ne: false } },
+              ],
+            },
+          },
+          { $limit: 20 },
+        ];
+
+        const products = await Product.aggregate(pipeline);
 
         return {
           brand: { ...brand.toObject(), source: "brand" },
           products: products.map((p) => ({
-            ...p.toObject(),
+            ...p,
             source: "brand",
           })),
         };
@@ -89,21 +157,55 @@ router.get("/categories", async (req, res) => {
       ],
     }).limit(20);
 
-    // For each category, also fetch associated products
+    // For each category, fetch associated products using aggregation
     const categoriesWithProducts = await Promise.all(
       categories.map(async (category) => {
-        const products = await Product.find({
-          category: category._id,
-          isActive: true,
-        })
-          .populate("brand", "name slug logoUrl")
-          .populate("category", "name slug")
-          .limit(20);
+        const pipeline = [
+          {
+            $match: {
+              category: category._id,
+              isActive: true,
+            }
+          },
+          {
+            $lookup: {
+              from: "brands",
+              localField: "brand",
+              foreignField: "_id",
+              as: "brandData",
+            },
+          },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryData",
+            },
+          },
+          {
+            $addFields: {
+              brand: { $arrayElemAt: ["$brandData", 0] },
+              category: { $arrayElemAt: ["$categoryData", 0] },
+            },
+          },
+          {
+            $match: {
+              $or: [
+                { brand: { $exists: false } },
+                { "brand.isActive": { $ne: false } },
+              ],
+            },
+          },
+          { $limit: 20 },
+        ];
+
+        const products = await Product.aggregate(pipeline);
 
         return {
           category: { ...category.toObject(), source: "category" },
           products: products.map((p) => ({
-            ...p.toObject(),
+            ...p,
             source: "category",
           })),
         };
@@ -126,25 +228,60 @@ router.get("/", async (req, res) => {
       return res.json({ products: [], brands: [], categories: [] });
     }
 
-    // Search products by title, slug, description
-    const products = await Product.find({
-      $or: [
-        { title: { $regex: q, $options: "i" } },
-        { slug: { $regex: q, $options: "i" } },
-        { description: { $regex: q, $options: "i" } },
-      ],
-      isActive: true,
-    })
-      .populate("brand", "name slug logoUrl")
-      .populate("category", "name slug")
-      .limit(50);
+    // Search products by title, slug, description using aggregation
+    const productPipeline = [
+      {
+        $match: {
+          $or: [
+            { title: { $regex: q, $options: "i" } },
+            { slug: { $regex: q, $options: "i" } },
+            { description: { $regex: q, $options: "i" } },
+          ],
+          isActive: true,
+        }
+      },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brandData",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryData",
+        },
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ["$brandData", 0] },
+          category: { $arrayElemAt: ["$categoryData", 0] },
+        },
+      },
+      {
+        $match: {
+          $or: [
+            { brand: { $exists: false } },
+            { "brand.isActive": { $ne: false } },
+          ],
+        },
+      },
+      { $limit: 50 },
+    ];
 
-    // Search brands
+    const products = await Product.aggregate(productPipeline);
+
+    // Search brands (only active brands)
     const brands = await Brand.find({
       $or: [
         { name: { $regex: q, $options: "i" } },
         { slug: { $regex: q, $options: "i" } },
       ],
+      isActive: true,
     }).limit(20);
 
     // Search categories
@@ -155,37 +292,105 @@ router.get("/", async (req, res) => {
       ],
     }).limit(20);
 
-    // Fetch products for matched brands
+    // Fetch products for matched brands using aggregation
     let brandProducts = [];
     if (brands.length > 0) {
       const brandIds = brands.map((b) => b._id);
-      brandProducts = await Product.find({
-        brand: { $in: brandIds },
-        isActive: true,
-      })
-        .populate("brand", "name slug logoUrl")
-        .populate("category", "name slug")
-        .limit(50);
+      const brandProductPipeline = [
+        {
+          $match: {
+            brand: { $in: brandIds },
+            isActive: true,
+          }
+        },
+        {
+          $lookup: {
+            from: "brands",
+            localField: "brand",
+            foreignField: "_id",
+            as: "brandData",
+          },
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "categoryData",
+          },
+        },
+        {
+          $addFields: {
+            brand: { $arrayElemAt: ["$brandData", 0] },
+            category: { $arrayElemAt: ["$categoryData", 0] },
+          },
+        },
+        {
+          $match: {
+            $or: [
+              { brand: { $exists: false } },
+              { "brand.isActive": { $ne: false } },
+            ],
+          },
+        },
+        { $limit: 50 },
+      ];
+
+      brandProducts = await Product.aggregate(brandProductPipeline);
     }
 
-    // Fetch products for matched categories
+    // Fetch products for matched categories using aggregation
     let categoryProducts = [];
     if (categories.length > 0) {
       const categoryIds = categories.map((c) => c._id);
-      categoryProducts = await Product.find({
-        category: { $in: categoryIds },
-        isActive: true,
-      })
-        .populate("brand", "name slug logoUrl")
-        .populate("category", "name slug")
-        .limit(50);
+      const categoryProductPipeline = [
+        {
+          $match: {
+            category: { $in: categoryIds },
+            isActive: true,
+          }
+        },
+        {
+          $lookup: {
+            from: "brands",
+            localField: "brand",
+            foreignField: "_id",
+            as: "brandData",
+          },
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "categoryData",
+          },
+        },
+        {
+          $addFields: {
+            brand: { $arrayElemAt: ["$brandData", 0] },
+            category: { $arrayElemAt: ["$categoryData", 0] },
+          },
+        },
+        {
+          $match: {
+            $or: [
+              { brand: { $exists: false } },
+              { "brand.isActive": { $ne: false } },
+            ],
+          },
+        },
+        { $limit: 50 },
+      ];
+
+      categoryProducts = await Product.aggregate(categoryProductPipeline);
     }
 
     // Merge and deduplicate products by _id
     const allProducts = [
-      ...products.map((p) => ({ ...p.toObject(), source: "product" })),
-      ...brandProducts.map((p) => ({ ...p.toObject(), source: "brand" })),
-      ...categoryProducts.map((p) => ({ ...p.toObject(), source: "category" })),
+      ...products.map((p) => ({ ...p, source: "product" })),
+      ...brandProducts.map((p) => ({ ...p, source: "brand" })),
+      ...categoryProducts.map((p) => ({ ...p, source: "category" })),
     ];
 
     // Deduplicate by _id
