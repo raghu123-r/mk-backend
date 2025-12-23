@@ -21,14 +21,14 @@ export const create = async (payload) => {
 
 // LIST PRODUCTS — FIXED DEFAULT LIMIT = 50
 export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) => {
-  const filter = { isActive: true };
+  const matchStage = { isActive: true };
 
-  if (q) filter.title = { $regex: q, $options: 'i' };
+  if (q) matchStage.title = { $regex: q, $options: 'i' };
   
   // Handle brand filtering - accept ObjectId string or ObjectId
   if (brand) {
     if (mongoose.Types.ObjectId.isValid(brand)) {
-      filter.brand = brand;
+      matchStage.brand = new mongoose.Types.ObjectId(brand);
     }
   }
 
@@ -36,7 +36,7 @@ export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) =>
     let categoryId = null;
 
     if (mongoose.Types.ObjectId.isValid(category)) {
-      categoryId = category;
+      categoryId = new mongoose.Types.ObjectId(category);
     } else {
       const found = await Category.findOne({
         $or: [{ name: category }, { slug: category }]
@@ -44,35 +44,69 @@ export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) =>
       if (found) categoryId = found._id;
     }
 
-    filter.category = categoryId || { $exists: false };
+    matchStage.category = categoryId || { $exists: false };
   }
 
   const skip = (page - 1) * limit;
 
-  // Fetch products with populated brand and category
-  const items = await Product.find(filter)
-    .populate('brand category')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  // Filter out products where brand is disabled (business rule: disabled brands should not appear)
-  // Categories can be disabled but products remain valid
-  const filteredItems = items.filter(item => {
-    // If brand is populated and has isActive field, check if it's active
-    if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
-      return item.brand.isActive !== false;
+  // Use aggregation to filter by brand.isActive at query time
+  const pipeline = [
+    { $match: matchStage },
+    {
+      $lookup: {
+        from: 'brands',
+        localField: 'brand',
+        foreignField: '_id',
+        as: 'brandData'
+      }
+    },
+    {
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'categoryData'
+      }
+    },
+    {
+      $addFields: {
+        brand: { $arrayElemAt: ['$brandData', 0] },
+        category: { $arrayElemAt: ['$categoryData', 0] }
+      }
+    },
+    {
+      $match: {
+        $or: [
+          { brand: { $exists: false } },
+          { 'brand.isActive': { $ne: false } }
+        ]
+      }
+    },
+    { $sort: { createdAt: -1 } },
+    {
+      $facet: {
+        items: [
+          { $skip: skip },
+          { $limit: limit }
+        ],
+        totalCount: [
+          { $count: 'count' }
+        ]
+      }
     }
-    return true; // If brand not populated or no isActive field, keep the product
-  });
+  ];
 
-  const total = await Product.countDocuments(filter);
+  const result = await Product.aggregate(pipeline);
+  
+  const items = result[0]?.items || [];
+  const total = result[0]?.totalCount[0]?.count || 0;
+  const pages = Math.ceil(total / limit);
 
   return {
-    items: filteredItems,
+    items,
     total,
     page,
-    pages: Math.ceil(total / limit),
+    pages,
   };
 };
 
@@ -119,51 +153,104 @@ export const getSimilarProducts = async (productId, limit = 4) => {
 
   // 1. Try to fetch by SAME CATEGORY first
   if (currentProduct.category) {
-    const categoryProducts = await Product.find({
-      category: currentProduct.category,
-      _id: { $ne: productId }, // Exclude current product
-      isActive: true
-    })
-      .populate('brand category')
-      .limit(limit)
-      .lean();
+    const categoryPipeline = [
+      {
+        $match: {
+          category: currentProduct.category,
+          _id: { $ne: new mongoose.Types.ObjectId(productId) },
+          isActive: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brand',
+          foreignField: '_id',
+          as: 'brandData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'category',
+          foreignField: '_id',
+          as: 'categoryData'
+        }
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ['$brandData', 0] },
+          category: { $arrayElemAt: ['$categoryData', 0] }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { brand: { $exists: false } },
+            { 'brand.isActive': { $ne: false } }
+          ]
+        }
+      },
+      { $limit: limit }
+    ];
 
-    // Filter out products with disabled brands
-    const validCategoryProducts = categoryProducts.filter(item => {
-      if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
-        return item.brand.isActive !== false;
-      }
-      return true;
-    });
-
-    results.push(...validCategoryProducts);
+    const categoryProducts = await Product.aggregate(categoryPipeline);
+    results.push(...categoryProducts);
   }
 
   // 2. If we still need more products, fetch by SAME BRAND as fallback
   if (results.length < limit && currentProduct.brand) {
     const remaining = limit - results.length;
-    const brandProducts = await Product.find({
-      brand: currentProduct.brand,
-      _id: { $ne: productId }, // Exclude current product
-      isActive: true
-    })
-      .populate('brand category')
-      .limit(remaining)
-      .lean();
+    const brandPipeline = [
+      {
+        $match: {
+          brand: currentProduct.brand,
+          _id: { $ne: new mongoose.Types.ObjectId(productId) },
+          isActive: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brand',
+          foreignField: '_id',
+          as: 'brandData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'category',
+          foreignField: '_id',
+          as: 'categoryData'
+        }
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ['$brandData', 0] },
+          category: { $arrayElemAt: ['$categoryData', 0] }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { brand: { $exists: false } },
+            { 'brand.isActive': { $ne: false } }
+          ]
+        }
+      },
+      { $limit: remaining }
+    ];
 
-    // Filter out products with disabled brands and avoid duplicates
+    const brandProducts = await Product.aggregate(brandPipeline);
+    
+    // Avoid duplicates
     const resultIds = new Set(results.map(p => p._id.toString()));
-    const validBrandProducts = brandProducts.filter(item => {
-      const itemId = item._id.toString();
-      if (resultIds.has(itemId)) return false;
-      
-      if (item.brand && typeof item.brand === 'object' && 'isActive' in item.brand) {
-        return item.brand.isActive !== false;
-      }
-      return true;
+    const uniqueBrandProducts = brandProducts.filter(item => {
+      return !resultIds.has(item._id.toString());
     });
 
-    results.push(...validBrandProducts);
+    results.push(...uniqueBrandProducts);
   }
 
   // Return limited results
