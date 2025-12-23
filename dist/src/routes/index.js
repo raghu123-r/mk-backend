@@ -12,6 +12,7 @@ import couponsRoutes from './coupons.routes.js';
 
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
+import adminContactRoutes from './admin.contact.routes.js';
 
 // CONTACT
 import contactRoutes from './contact.routes.js';
@@ -50,6 +51,9 @@ router.use('/admin', adminAuthRoutes);
 
 // ⭐ Admin Products API
 router.use('/admin/products', adminProductRoutes);
+
+// ⭐ Admin Contact Submissions API
+router.use('/admin/contact-submissions', adminContactRoutes);
 
 if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
   (async () => {
