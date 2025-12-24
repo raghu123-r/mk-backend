@@ -77,12 +77,14 @@ export const createReview = async (req, res, next) => {
 };
 
 /**
- * GET /api/products/:productId/reviews
- * Get all reviews for a specific product
+ * GET /api/reviews/products/:productId/reviews?page=1
+ * Get paginated reviews for a specific product (limit = 3 per page)
  */
 export const getProductReviews = async (req, res, next) => {
   try {
     const { productId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 3; // Fixed limit of 3 reviews per page
 
     // Validate productId format
     if (!isValidObjectId(productId)) {
@@ -94,16 +96,34 @@ export const getProductReviews = async (req, res, next) => {
       });
     }
 
-    // Fetch reviews, sorted by newest first
+    // Calculate skip value
+    const skip = (page - 1) * limit;
+
+    // Get total count of reviews for this product
+    const totalReviews = await Review.countDocuments({ product: productId });
+
+    // Fetch paginated reviews, sorted by newest first
     const reviews = await Review.find({ product: productId })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalReviews / limit);
+    const hasNextPage = page < totalPages;
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: reviews
+      data: {
+        reviews,
+        totalReviews,
+        currentPage: page,
+        totalPages,
+        hasNextPage
+      }
     });
   } catch (err) {
     next(err);
