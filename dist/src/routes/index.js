@@ -9,6 +9,7 @@ import uploadRoutes from './upload.routes.js';
 import categoryRoutes from './category.routes.js';
 import cartRoutes from './cart.routes.js';
 import couponsRoutes from './coupons.routes.js';
+import reviewRoutes from './review.routes.js';
 
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
@@ -82,6 +83,9 @@ if (process.env.FEATURE_ADMIN_USERS === 'true') {
 // Main User Routes
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
+
+// Reviews
+router.use('/reviews', reviewRoutes);
 
 // USER DASHBOARD: Mount user profile and dashboard routes
 router.use('/user', userProfileRoutes);
