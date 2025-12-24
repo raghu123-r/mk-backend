@@ -3,14 +3,6 @@ import Product from "../models/Product.js";
 import Brand from "../models/Brand.js";
 import Category from "../models/Category.js";
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * Slugify a string by lowercasing, trimming, replacing spaces with hyphens,
- * removing non-alphanumeric characters, and collapsing multiple hyphens.
- * @param {string} str - The string to slugify.
- * @returns {string} The slugified string.
- */
-/*******  eca9767c-1b69-4a0a-8528-52ebdfd4f7b2  *******/
 const slugify = (str) =>
   String(str || '')
     .toLowerCase()
