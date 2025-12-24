@@ -11,12 +11,17 @@ const slugify = (str) =>
     .replace(/[^\w-]+/g, '')
     .replace(/--+/g, '-');
 
-// GET ALL PRODUCTS WITH PAGINATION
+// GET ALL PRODUCTS WITH PAGINATION AND FILTERS
 export const listProducts = async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 10
+      limit = 10,
+      search = '',
+      category = '',
+      brand = '',
+      priceMin = '',
+      priceMax = ''
     } = req.query;
 
     const pageNum = parseInt(page, 10);
@@ -26,14 +31,43 @@ export const listProducts = async (req, res) => {
     // Support large limits for backward compatibility (e.g., 9999 for "all")
     const effectiveLimit = limitNum > 0 ? limitNum : 10;
 
-    // Execute query with pagination
+    // Build filter query
+    const filterQuery = {};
+
+    // Global search on product title
+    if (search && search.trim()) {
+      filterQuery.title = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Category filter
+    if (category && category.trim()) {
+      filterQuery.category = category.trim();
+    }
+
+    // Brand filter
+    if (brand && brand.trim()) {
+      filterQuery.brand = brand.trim();
+    }
+
+    // Price range filter
+    if (priceMin || priceMax) {
+      filterQuery.price = {};
+      if (priceMin && !isNaN(parseFloat(priceMin))) {
+        filterQuery.price.$gte = parseFloat(priceMin);
+      }
+      if (priceMax && !isNaN(parseFloat(priceMax))) {
+        filterQuery.price.$lte = parseFloat(priceMax);
+      }
+    }
+
+    // Execute query with filters and pagination
     const [products, total] = await Promise.all([
-      Product.find()
+      Product.find(filterQuery)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(effectiveLimit)
         .lean(),
-      Product.countDocuments()
+      Product.countDocuments(filterQuery)
     ]);
 
     const totalPages = Math.ceil(total / effectiveLimit);
@@ -47,7 +81,9 @@ export const listProducts = async (req, res) => {
         total,
         page: pageNum,
         totalPages,
-        limit: effectiveLimit
+        limit: effectiveLimit,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
       }
     });
   } catch (err) {
