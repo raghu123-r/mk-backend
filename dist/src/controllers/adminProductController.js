@@ -11,15 +11,44 @@ const slugify = (str) =>
     .replace(/[^\w-]+/g, '')
     .replace(/--+/g, '-');
 
-// GET ALL PRODUCTS
+// GET ALL PRODUCTS WITH PAGINATION
 export const listProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const {
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Support large limits for backward compatibility (e.g., 9999 for "all")
+    const effectiveLimit = limitNum > 0 ? limitNum : 10;
+
+    // Execute query with pagination
+    const [products, total] = await Promise.all([
+      Product.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(effectiveLimit)
+        .lean(),
+      Product.countDocuments()
+    ]);
+
+    const totalPages = Math.ceil(total / effectiveLimit);
+
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: { items: products }
+      data: {
+        products,
+        total,
+        page: pageNum,
+        totalPages,
+        limit: effectiveLimit
+      }
     });
   } catch (err) {
     console.error("Admin list products error:", err);
