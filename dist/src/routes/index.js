@@ -10,6 +10,7 @@ import categoryRoutes from './category.routes.js';
 import cartRoutes from './cart.routes.js';
 import couponsRoutes from './coupons.routes.js';
 import reviewRoutes from './review.routes.js';
+import homepageRoutes from './homepage.routes.js';
 
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
@@ -42,6 +43,9 @@ router.use('/categories', categoryRoutes);
 router.use('/contact', contactRoutes);
 router.use('/contact-info', contactInfoRoutes);
 router.use("/search", searchRoutes);
+
+// Homepage lightweight endpoints
+router.use('/homepage', homepageRoutes);
 
 // User Auth
 router.use('/auth', authRoutes);
