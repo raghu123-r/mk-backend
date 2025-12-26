@@ -263,44 +263,49 @@ export const list = async (_req, res, next) => {
 
 export const listAll = async (req, res, next) => {
   try {
-    // Admin endpoint: return ALL brands including disabled ones
+    // Admin endpoint: return ALL brands including disabled ones with advanced search & filters
     const {
       page = 1,
-      limit = 10
+      limit = 5,
+      search = '',
+      status = ''
     } = req.query;
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-
-    // Support large limits for backward compatibility (e.g., 9999 for "all")
-    // If no pagination params or limit is very large, return all brands
-    const usePagination = pageNum > 0 && limitNum > 0 && limitNum <= 100;
-
-    if (!usePagination) {
-      // Backward compatibility: return all brands
-      const brands = await Brand.find().sort({ createdAt: -1 }).lean();
-      const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
-      return res.status(200).json({
-        statusCode: 200,
-        success: true,
-        error: null,
-        data: mapped
-      });
-    }
-
-    // Paginated response
     const skip = (pageNum - 1) * limitNum;
 
+    // Support large limits for backward compatibility (e.g., 9999 for "all")
+    const effectiveLimit = limitNum > 0 ? limitNum : 5;
+
+    // Build filter query
+    const filterQuery = {};
+
+    // Global search on brand name
+    if (search && search.trim()) {
+      filterQuery.name = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Status filter (active/inactive)
+    if (status && status.trim()) {
+      if (status === 'active') {
+        filterQuery.isActive = true;
+      } else if (status === 'inactive') {
+        filterQuery.isActive = false;
+      }
+    }
+
+    // Execute query with filters and pagination
     const [brands, total] = await Promise.all([
-      Brand.find()
+      Brand.find(filterQuery)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNum)
+        .limit(effectiveLimit)
         .lean(),
-      Brand.countDocuments()
+      Brand.countDocuments(filterQuery)
     ]);
 
-    const totalPages = Math.ceil(total / limitNum);
+    const totalPages = Math.ceil(total / effectiveLimit);
     const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
 
     return res.status(200).json({
@@ -312,7 +317,9 @@ export const listAll = async (req, res, next) => {
         total,
         page: pageNum,
         totalPages,
-        limit: limitNum
+        limit: effectiveLimit,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
       }
     });
   } catch (e) { next(e); }
