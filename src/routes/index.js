@@ -15,6 +15,7 @@ import homepageRoutes from './homepage.routes.js';
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
 import adminContactRoutes from './admin.contact.routes.js';
+import adminHomepageRoutes from './admin.homepage.routes.js';
 
 // CONTACT
 import contactRoutes from './contact.routes.js';
@@ -59,6 +60,9 @@ router.use('/admin/products', adminProductRoutes);
 
 // ⭐ Admin Contact Submissions API
 router.use('/admin/contact-submissions', adminContactRoutes);
+
+// ⭐ Admin Homepage Management API
+router.use('/admin/homepage', adminHomepageRoutes);
 
 if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
   (async () => {
