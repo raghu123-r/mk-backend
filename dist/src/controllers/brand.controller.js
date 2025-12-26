@@ -18,8 +18,22 @@ const updateSchema = z.object({
   body: z.object({
     name: z.string().min(1).optional(),
     slug: z.string().min(1).optional(),
-    logoUrl: z.string().url().optional()
+    logoUrl: z.string().url().optional(),
+    showOnHomepage: z.boolean().optional(),
+    homepageOrder: z.number().min(1).max(4).optional()
   })
+  .refine(
+    (data) => {
+      // If homepageOrder is set, showOnHomepage must be true
+      if (data.homepageOrder !== undefined && !data.showOnHomepage) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'homepageOrder can only be set when showOnHomepage is true'
+    }
+  )
 });
 
 /**
@@ -366,6 +380,29 @@ export const getById = async (req, res, next) => {
 
 export const update = async (req, res, next) => {
   try {
+    // Check for duplicate homepageOrder if being set
+    if (req.body.showOnHomepage && req.body.homepageOrder !== undefined) {
+      const existingBrand = await Brand.findOne({
+        _id: { $ne: req.params.id },
+        showOnHomepage: true,
+        homepageOrder: req.body.homepageOrder
+      });
+      
+      if (existingBrand) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: `Homepage order ${req.body.homepageOrder} is already assigned to brand "${existingBrand.name}"` },
+          data: null
+        });
+      }
+    }
+
+    // If disabling homepage visibility, clear the order
+    if (req.body.showOnHomepage === false) {
+      req.body.homepageOrder = null;
+    }
+
     const brand = await Brand.findByIdAndUpdate(
       req.params.id,
       req.body,
