@@ -10,6 +10,8 @@ const mapCategory = (c) => ({
   image: c.image || "",
   image_url: c.image_url || c.image || "",
   isActive: c.isActive !== undefined ? c.isActive : true,
+  showOnHomepage: c.showOnHomepage || false,
+  homepageOrder: c.homepageOrder || null,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
@@ -196,6 +198,40 @@ export const createCategory = async (req, res) => {
 // Update category
 export const updateCategory = async (req, res) => {
   try {
+    // Validate homepage fields
+    if (req.body.showOnHomepage && req.body.homepageOrder !== undefined) {
+      // Check homepageOrder is in valid range
+      if (req.body.homepageOrder < 1 || req.body.homepageOrder > 4) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "homepageOrder must be between 1 and 4" },
+          data: null
+        });
+      }
+
+      // Check for duplicate homepageOrder
+      const existingCategory = await Category.findOne({
+        _id: { $ne: req.params.id },
+        showOnHomepage: true,
+        homepageOrder: req.body.homepageOrder
+      });
+      
+      if (existingCategory) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: `Homepage order ${req.body.homepageOrder} is already assigned to category "${existingCategory.name}"` },
+          data: null
+        });
+      }
+    }
+
+    // If disabling homepage visibility, clear the order
+    if (req.body.showOnHomepage === false) {
+      req.body.homepageOrder = null;
+    }
+
     const updated = await Category.findByIdAndUpdate(
       req.params.id,
       req.body,

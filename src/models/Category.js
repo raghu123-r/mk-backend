@@ -49,11 +49,32 @@ const categorySchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Homepage priority fields
+    showOnHomepage: { 
+      type: Boolean, 
+      default: false 
+    },
+    homepageOrder: { 
+      type: Number, 
+      min: 1, 
+      max: 4,
+      sparse: true // Allow null/undefined, but enforce uniqueness when set
+    }
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+  }
+);
+
+// Ensure homepageOrder is unique when showOnHomepage is true
+categorySchema.index(
+  { homepageOrder: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { showOnHomepage: true, homepageOrder: { $exists: true } }
   }
 );
 

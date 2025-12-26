@@ -10,6 +10,8 @@ const mapCategory = (c) => ({
   image: c.image || "",
   image_url: c.image_url || c.image || "",
   isActive: c.isActive !== undefined ? c.isActive : true,
+  showOnHomepage: c.showOnHomepage || false,
+  homepageOrder: c.homepageOrder || null,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
@@ -49,15 +51,56 @@ export const getCategories = async (req, res) => {
 // Get all categories (including disabled) - Admin only
 export const getAllCategories = async (req, res) => {
   try {
-    // Admin endpoint: return ALL categories
-    const categories = await Category.find().sort({ name: 1 });
+    // Admin endpoint: return ALL categories including disabled ones with advanced search & filters
+    const {
+      page = 1,
+      limit = 5,
+      search = '',
+      status = ''
+    } = req.query;
 
-    // Fix missing slugs in old records
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Support large limits for backward compatibility (e.g., 9999 for "all")
+    const effectiveLimit = limitNum > 0 ? limitNum : 5;
+
+    // Build filter query
+    const filterQuery = {};
+
+    // Global search on category name
+    if (search && search.trim()) {
+      filterQuery.name = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Status filter (active/inactive)
+    if (status && status.trim()) {
+      if (status === 'active') {
+        filterQuery.isActive = true;
+      } else if (status === 'inactive' || status === 'disabled') {
+        filterQuery.isActive = false;
+      }
+    }
+
+    // Execute query with filters and pagination
+    const [categories, total] = await Promise.all([
+      Category.find(filterQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(effectiveLimit)
+        .lean(),
+      Category.countDocuments(filterQuery)
+    ]);
+
+    const totalPages = Math.ceil(total / effectiveLimit);
+
+    // Fix missing slugs in old records and map
     const updated = [];
     for (const c of categories) {
       if (!c.slug) {
         c.slug = c.name.toLowerCase().replace(/\s+/g, "-");
-        await c.save();
+        await Category.findByIdAndUpdate(c._id, { slug: c.slug });
       }
       updated.push(mapCategory(c));
     }
@@ -66,7 +109,15 @@ export const getAllCategories = async (req, res) => {
       statusCode: 200,
       success: true,
       error: null,
-      data: updated
+      data: {
+        categories: updated,
+        total,
+        page: pageNum,
+        totalPages,
+        limit: effectiveLimit,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
+      }
     });
   } catch (error) {
     return res.status(500).json({
@@ -147,6 +198,40 @@ export const createCategory = async (req, res) => {
 // Update category
 export const updateCategory = async (req, res) => {
   try {
+    // Validate homepage fields
+    if (req.body.showOnHomepage && req.body.homepageOrder !== undefined) {
+      // Check homepageOrder is in valid range
+      if (req.body.homepageOrder < 1 || req.body.homepageOrder > 4) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "homepageOrder must be between 1 and 4" },
+          data: null
+        });
+      }
+
+      // Check for duplicate homepageOrder
+      const existingCategory = await Category.findOne({
+        _id: { $ne: req.params.id },
+        showOnHomepage: true,
+        homepageOrder: req.body.homepageOrder
+      });
+      
+      if (existingCategory) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: `Homepage order ${req.body.homepageOrder} is already assigned to category "${existingCategory.name}"` },
+          data: null
+        });
+      }
+    }
+
+    // If disabling homepage visibility, clear the order
+    if (req.body.showOnHomepage === false) {
+      req.body.homepageOrder = null;
+    }
+
     const updated = await Category.findByIdAndUpdate(
       req.params.id,
       req.body,
