@@ -53,7 +53,8 @@ export const getAllCategories = async (req, res) => {
     const {
       page = 1,
       limit = 5,
-      search = ''
+      search = '',
+      status = ''
     } = req.query;
 
     const pageNum = parseInt(page, 10);
@@ -69,6 +70,15 @@ export const getAllCategories = async (req, res) => {
     // Global search on category name
     if (search && search.trim()) {
       filterQuery.name = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Status filter (active/inactive)
+    if (status && status.trim()) {
+      if (status === 'active') {
+        filterQuery.isActive = true;
+      } else if (status === 'inactive' || status === 'disabled') {
+        filterQuery.isActive = false;
+      }
     }
 
     // Execute query with filters and pagination
