@@ -1,14 +1,52 @@
 import { supabase, supabaseAdmin, getPublicUrl, BUCKET } from '../utils/supabase.js';
 import { v4 as uuid } from 'uuid';
 
-const ALLOWED_FOLDERS = ['products', 'brands', 'categories'];
-
+/**
+ * Validate folder name for security
+ * Prevents path traversal and ensures safe folder naming
+ * @param {string} folder - Folder name to validate
+ * @throws {Error} If folder is invalid or contains unsafe patterns
+ */
 function validateFolder(folder) {
   if (!folder) {
-    throw new Error('Upload folder is required. Allowed folders: products, brands, categories');
+    throw new Error('Upload folder is required');
   }
-  if (!ALLOWED_FOLDERS.includes(folder)) {
-    throw new Error(`Invalid upload folder: ${folder}. Allowed folders: products, brands, categories`);
+  
+  if (typeof folder !== 'string') {
+    throw new Error('Folder must be a string');
+  }
+  
+  // Trim whitespace
+  const trimmedFolder = folder.trim();
+  
+  if (trimmedFolder.length === 0) {
+    throw new Error('Folder name cannot be empty');
+  }
+  
+  // Reject folders with leading or trailing slashes
+  if (trimmedFolder.startsWith('/') || trimmedFolder.endsWith('/')) {
+    throw new Error('Folder name cannot start or end with slashes');
+  }
+  
+  // Reject path traversal patterns
+  if (trimmedFolder.includes('../') || trimmedFolder.includes('./') || trimmedFolder.includes('..\\') || trimmedFolder.includes('.\\')) {
+    throw new Error('Folder name cannot contain path traversal patterns');
+  }
+  
+  // Reject absolute paths
+  if (trimmedFolder.includes(':') || trimmedFolder.startsWith('\\')) {
+    throw new Error('Folder name cannot be an absolute path');
+  }
+  
+  // Reject multiple consecutive slashes (e.g., "folder//subfolder")
+  if (trimmedFolder.includes('//') || trimmedFolder.includes('\\\\')) {
+    throw new Error('Folder name cannot contain consecutive slashes');
+  }
+  
+  // Allow alphanumeric, hyphens, underscores, and single forward slashes for nested folders
+  const validFolderPattern = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+  if (!validFolderPattern.test(trimmedFolder)) {
+    throw new Error('Folder name can only contain letters, numbers, hyphens, underscores, and forward slashes for nesting');
   }
 }
 

@@ -6,7 +6,8 @@ import { Router } from 'express';
 import {
   getHomepageBrands,
   getHomepageCategories,
-  getHomepageTopPicks
+  getHomepageTopPicks,
+  getHeroImages
 } from '../controllers/homepage.controller.js';
 
 const router = Router();
@@ -19,5 +20,8 @@ router.get('/categories', getHomepageCategories);
 
 // GET /api/homepage/top-picks - Return random products for homepage
 router.get('/top-picks', getHomepageTopPicks);
+
+// GET /api/homepage/hero-images - Return active hero images for carousel
+router.get('/hero-images', getHeroImages);
 
 export default router;

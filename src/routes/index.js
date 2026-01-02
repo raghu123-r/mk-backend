@@ -16,6 +16,7 @@ import homepageRoutes from './homepage.routes.js';
 import adminAuthRoutes from './admin.auth.routes.js';
 import adminContactRoutes from './admin.contact.routes.js';
 import adminHomepageRoutes from './admin.homepage.routes.js';
+import adminHeroRoutes from './admin.hero.routes.js';
 
 // CONTACT
 import contactRoutes from './contact.routes.js';
@@ -63,6 +64,9 @@ router.use('/admin/contact-submissions', adminContactRoutes);
 
 // ⭐ Admin Homepage Management API
 router.use('/admin/homepage', adminHomepageRoutes);
+
+// ⭐ Admin Hero Images Management API
+router.use('/admin/hero-images', adminHeroRoutes);
 
 if (process.env.FEATURE_ADMIN_ORDERS === 'true') {
   (async () => {
