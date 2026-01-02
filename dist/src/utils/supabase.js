@@ -1,5 +1,4 @@
 // kk-backend/src/utils/supabase.js
-
 import dotenv from 'dotenv';
 dotenv.config();
 import { createClient } from '@supabase/supabase-js';
@@ -41,6 +40,53 @@ export function getPublicUrl(path) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Delete an image from Supabase storage
+ * @param {string} pathOrUrl - File path within bucket or full public URL
+ * @returns {Promise<void>}
+ */
+export async function deleteImageFromSupabase(pathOrUrl) {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not configured');
+  }
+
+  if (!pathOrUrl) {
+    throw new Error('File path or URL is required');
+  }
+
+  let filePath = pathOrUrl;
+
+  // If it's a full URL, extract the path after the bucket name
+  if (pathOrUrl.includes('http')) {
+    try {
+      const url = new URL(pathOrUrl);
+      // Extract path after /storage/v1/object/public/{BUCKET}/
+      const pathParts = url.pathname.split(`/object/public/${BUCKET}/`);
+      if (pathParts.length > 1) {
+        filePath = pathParts[1];
+      }
+    } catch (err) {
+      console.error('Failed to parse URL:', err);
+      throw new Error('Invalid image URL');
+    }
+  }
+
+  // Remove leading slash if present
+  filePath = filePath.replace(/^\/+/, '');
+
+  const { error } = await supabaseAdmin
+    .storage
+    .from(BUCKET)
+    .remove([filePath]);
+
+  if (error) {
+    console.error(`Failed to delete file ${filePath}:`, error);
+    throw error;
+  }
+
+  console.log(`✅ Deleted file from Supabase: ${filePath}`);
 }
 
 export { supabase, supabaseAdmin, BUCKET };
