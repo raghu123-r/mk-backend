@@ -46,7 +46,7 @@ export const uploadFiles = async (req, res, next) => {
       return res.status(400).json({
         ok: false,
         success: false,
-        error: 'Upload folder is required. Allowed folders: products, brands, categories',
+        error: 'Upload folder is required',
         data: null
       });
     }

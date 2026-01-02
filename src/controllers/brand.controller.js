@@ -20,12 +20,12 @@ const updateSchema = z.object({
     slug: z.string().min(1).optional(),
     logoUrl: z.string().url().optional(),
     showOnHomepage: z.boolean().optional(),
-    homepageOrder: z.number().min(1).max(4).optional()
+    homepageOrder: z.number().min(1).max(4).nullable().optional()
   })
   .refine(
     (data) => {
-      // If homepageOrder is set, showOnHomepage must be true
-      if (data.homepageOrder !== undefined && !data.showOnHomepage) {
+      // If homepageOrder is set (not null/undefined), showOnHomepage must be true
+      if (data.homepageOrder !== undefined && data.homepageOrder !== null && !data.showOnHomepage) {
         return false;
       }
       return true;

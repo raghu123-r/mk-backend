@@ -6,6 +6,7 @@
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
 import Product from '../models/Product.js';
+import HeroImage from '../models/HeroImage.js';
 
 /**
  * GET /api/homepage/brands
@@ -20,7 +21,7 @@ export const getHomepageBrands = async (req, res) => {
       .sort({ homepageOrder: 1 }) // Sort by priority order
       .limit(4)
       .lean();
-
+      
     return res.status(200).json({
       statusCode: 200,
       success: true,
@@ -127,6 +128,39 @@ export const getHomepageTopPicks = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: 'Failed to fetch homepage products' },
+      data: []
+    });
+  }
+};
+
+/**
+ * GET /api/homepage/hero-images
+ * Returns active hero images for homepage carousel
+ * Optimized for fast page load - returns minimal fields and limited images
+ */
+export const getHeroImages = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+
+    const heroImages = await HeroImage
+      .find({ isActive: true })
+      .select('_id title subtitle imageUrl displayOrder')
+      .sort({ displayOrder: 1 })
+      .limit(limit)
+      .lean();
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: heroImages
+    });
+  } catch (error) {
+    console.error('Homepage hero images error:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch hero images' },
       data: []
     });
   }
