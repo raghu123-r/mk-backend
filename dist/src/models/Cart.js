@@ -17,6 +17,12 @@ const cartItemSchema = new mongoose.Schema({
     ref: 'Product',
     required: true
   },
+  // Optional: variant ID for products with variants
+  variantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductVariant',
+    default: null
+  },
   qty: {
     type: Number,
     required: true,
@@ -32,6 +38,11 @@ const cartItemSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true
+  },
+  // Optional: variant name for display (e.g., "26cm (3.5L)")
+  variantName: {
+    type: String,
+    default: null
   },
   image: {
     type: String,
@@ -74,21 +85,30 @@ cartSchema.pre('save', function(next) {
 });
 
 /**
- * Instance method to find a cart item by product ID
+ * Instance method to find a cart item by product ID and optional variant ID
+ * Maintains backward compatibility: items without variantId match when variantId is null
  */
-cartSchema.methods.findItemByProductId = function(productId) {
-  return this.items.find(item => 
-    item.productId.toString() === productId.toString()
-  );
+cartSchema.methods.findItemByProductId = function(productId, variantId = null) {
+  return this.items.find(item => {
+    const productMatch = item.productId.toString() === productId.toString();
+    const variantMatch = variantId 
+      ? (item.variantId && item.variantId.toString() === variantId.toString())
+      : !item.variantId; // If no variantId provided, match items without variant
+    return productMatch && variantMatch;
+  });
 };
 
 /**
- * Instance method to remove a cart item by product ID
+ * Instance method to remove a cart item by product ID and optional variant ID
  */
-cartSchema.methods.removeItemByProductId = function(productId) {
-  this.items = this.items.filter(item => 
-    item.productId.toString() !== productId.toString()
-  );
+cartSchema.methods.removeItemByProductId = function(productId, variantId = null) {
+  this.items = this.items.filter(item => {
+    const productMatch = item.productId.toString() === productId.toString();
+    const variantMatch = variantId 
+      ? (item.variantId && item.variantId.toString() === variantId.toString())
+      : !item.variantId;
+    return !(productMatch && variantMatch); // Keep items that don't match
+  });
 };
 
 export default mongoose.model('Cart', cartSchema);
