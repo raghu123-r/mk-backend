@@ -4,6 +4,7 @@ import { allowRoles } from '../middlewares/roles.js';
 import { ROLES } from '../constants/roles.js';
 import { validate } from '../middlewares/validate.js';
 import { create, list, validators, getBySlugController, updateProduct, deleteProduct, getSimilarProducts } from '../controllers/product.controller.js';
+import { getVariantsByProductSlug } from '../controllers/productVariant.controller.js';
 
 const router = Router();
 
@@ -21,6 +22,9 @@ router.post(
 
 // GET PRODUCT BY SLUG (controller wrapper)
 router.get('/:slug', getBySlugController);
+
+// GET VARIANTS BY PRODUCT SLUG (public)
+router.get('/:slug/variants', getVariantsByProductSlug);
 
 // GET SIMILAR PRODUCTS BY ID
 router.get('/:id/similar', getSimilarProducts);

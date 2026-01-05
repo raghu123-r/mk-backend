@@ -5,7 +5,10 @@ const orderItem = new mongoose.Schema({
   title: String,
   price: Number,
   qty: Number,
-  image: String
+  image: String,
+  // Variant support (optional)
+  variantId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant', default: null },
+  variantName: { type: String, default: null }
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
