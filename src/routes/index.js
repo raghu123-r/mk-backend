@@ -30,6 +30,7 @@ import userAddressRoutes from './userAddress.routes.js';
 // ADAPTERS (leave them as they are)
 // ⭐ NEW IMPORT — Admin Product Routes
 import adminProductRoutes from "./adminProductRoutes.js";
+import adminProductVariantRoutes from "./adminProductVariant.routes.js";
 import searchRoutes from "./search.routes.js";
 
 // ALIASES (leave them untouched)
@@ -58,6 +59,9 @@ router.use('/admin', adminAuthRoutes);
 
 // ⭐ Admin Products API
 router.use('/admin/products', adminProductRoutes);
+
+// ⭐ Admin Product Variants API
+router.use('/admin/products', adminProductVariantRoutes);
 
 // ⭐ Admin Contact Submissions API
 router.use('/admin/contact-submissions', adminContactRoutes);
