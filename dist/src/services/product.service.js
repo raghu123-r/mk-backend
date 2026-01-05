@@ -1,6 +1,7 @@
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
+import ProductVariant from '../models/ProductVariant.js';
 import createError from 'http-errors';
 import mongoose from 'mongoose';
 
@@ -124,7 +125,19 @@ export const getBySlug = async (slug) => {
     }
   }
 
-  return product;
+  // Fetch variants if they exist
+  const variants = await ProductVariant.find({ 
+    product: product._id, 
+    isActive: true 
+  }).sort({ createdAt: 1 });
+
+  // Add variants to product object (only if variants exist)
+  const productObj = product.toObject();
+  if (variants.length > 0) {
+    productObj.variants = variants;
+  }
+
+  return productObj;
 };
 
 // UPDATE PRODUCT BY ID
