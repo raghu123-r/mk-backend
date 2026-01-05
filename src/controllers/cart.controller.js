@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import createError from 'http-errors';
 import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
+import ProductVariant from '../models/ProductVariant.js';
 
 /**
  * Cart Controller
@@ -71,9 +72,11 @@ export const getCart = async (req, res, next) => {
 
 /**
  * Add product to cart or update quantity if already exists
+ * Supports variants: if variantId is provided, uses variant price/stock
  * @route POST /api/cart
  * @access Private (requires auth)
  * @body {String} productId - Product ID to add
+ * @body {String} [variantId] - Optional variant ID
  * @body {Number} qty - Quantity to add (min: 1)
  * @returns {Object} Updated cart
  */
@@ -84,7 +87,7 @@ export const addToCart = async (req, res, next) => {
       return next(createError(401, 'Authentication required'));
     }
 
-    const { productId, qty } = req.body;
+    const { productId, variantId, qty } = req.body;
     const userId = req.user.id;
 
     // Validate input
@@ -111,9 +114,47 @@ export const addToCart = async (req, res, next) => {
       return next(createError(400, 'Product is not available'));
     }
 
+    // Variables for price, stock, and variant info
+    let price, stock, variantName = null, effectiveVariantId = null;
+    let firstImage = product.images?.[0] || '';
+
+    // If variantId provided, validate and use variant data
+    if (variantId) {
+      if (!mongoose.Types.ObjectId.isValid(variantId)) {
+        return next(createError(400, 'Invalid variant ID format'));
+      }
+
+      const variant = await ProductVariant.findById(variantId);
+      if (!variant) {
+        return next(createError(404, 'Variant not found'));
+      }
+
+      if (variant.product.toString() !== productId) {
+        return next(createError(400, 'Variant does not belong to this product'));
+      }
+
+      if (!variant.isActive) {
+        return next(createError(400, 'Variant is not available'));
+      }
+
+      price = variant.price;
+      stock = variant.stock;
+      variantName = variant.name;
+      effectiveVariantId = variant._id;
+      
+      // Use variant images if available, else fallback to product images
+      if (variant.images && variant.images.length > 0) {
+        firstImage = variant.images[0];
+      }
+    } else {
+      // No variant - use product data (backward compatibility)
+      price = product.price;
+      stock = product.stock;
+    }
+
     // Check stock availability
-    if (product.stock < qty) {
-      return next(createError(400, `Only ${product.stock} items available in stock`));
+    if (stock < qty) {
+      return next(createError(400, `Only ${stock} items available in stock`));
     }
 
     // Find or create cart for user
@@ -128,32 +169,33 @@ export const addToCart = async (req, res, next) => {
       isNewCart = true;
     }
 
-    // Check if product already exists in cart
-    const existingItemIndex = cart.items.findIndex(
-      item => item.productId.toString() === productId
-    );
+    // Check if this specific product+variant combo already exists in cart
+    const existingItem = cart.findItemByProductId(productId, effectiveVariantId);
 
-    if (existingItemIndex !== -1) {
-      // Product exists - update quantity and price snapshot
-      const newQty = cart.items[existingItemIndex].qty + qty;
+    if (existingItem) {
+      // Item exists - update quantity
+      const newQty = existingItem.qty + qty;
       
       // Check if new quantity exceeds stock
-      if (newQty > product.stock) {
-        return next(createError(400, `Cannot add ${qty} more. Only ${product.stock} items available in stock`));
+      if (newQty > stock) {
+        return next(createError(400, `Cannot add ${qty} more. Only ${stock} items available in stock`));
       }
 
-      cart.items[existingItemIndex].qty = newQty;
-      cart.items[existingItemIndex].price = product.price; // Update price snapshot
-      cart.items[existingItemIndex].title = product.title; // Update title in case it changed
-      cart.items[existingItemIndex].image = product.images?.[0] || ''; // Update image
+      existingItem.qty = newQty;
+      existingItem.price = price; // Update price snapshot
+      existingItem.title = product.title;
+      existingItem.variantName = variantName;
+      existingItem.image = firstImage;
     } else {
-      // Product doesn't exist - add new item with snapshot
+      // New item - add to cart
       const newItem = {
         productId: product._id,
+        variantId: effectiveVariantId,
         qty,
-        price: product.price, // Snapshot current price
-        title: product.title, // Snapshot title
-        image: product.images?.[0] || '' // Snapshot first image
+        price,
+        title: product.title,
+        variantName,
+        image: firstImage
       };
       cart.items.push(newItem);
     }
@@ -176,9 +218,11 @@ export const addToCart = async (req, res, next) => {
 
 /**
  * Update cart item quantity
+ * Supports variants: must provide variantId if the cart item has one
  * @route PATCH /api/cart/item
  * @access Private (requires auth)
  * @body {String} productId - Product ID to update
+ * @body {String} [variantId] - Optional variant ID (required if item has variant)
  * @body {Number} qty - New quantity (0 or negative removes item)
  * @returns {Object} Updated cart
  */
@@ -189,7 +233,7 @@ export const updateCartItem = async (req, res, next) => {
       return next(createError(401, 'Authentication required'));
     }
 
-    const { productId, qty } = req.body;
+    const { productId, variantId, qty } = req.body;
     const userId = req.user.id;
 
     // Validate input
@@ -216,10 +260,15 @@ export const updateCartItem = async (req, res, next) => {
       return next(createError(404, 'Cart not found'));
     }
 
-    // Find the item in cart
-    const itemIndex = cart.items.findIndex(
-      item => item.productId.toString() === productId
-    );
+    // Find the item in cart using composite key (product + variant)
+    const effectiveVariantId = variantId || null;
+    const itemIndex = cart.items.findIndex(item => {
+      const productMatch = item.productId.toString() === productId;
+      const variantMatch = effectiveVariantId
+        ? (item.variantId && item.variantId.toString() === effectiveVariantId.toString())
+        : !item.variantId;
+      return productMatch && variantMatch;
+    });
 
     if (itemIndex === -1) {
       return next(createError(404, 'Item not found in cart'));
@@ -229,20 +278,31 @@ export const updateCartItem = async (req, res, next) => {
     if (qty <= 0) {
       cart.items.splice(itemIndex, 1);
     } else {
-      // Update quantity and verify stock if product still exists
-      const product = await Product.findById(productId);
-      if (product && product.stock < qty) {
-        return next(createError(400, `Only ${product.stock} items available in stock`));
+      // Update quantity and verify stock
+      let stock;
+      
+      if (effectiveVariantId) {
+        const variant = await ProductVariant.findById(effectiveVariantId);
+        if (variant) {
+          stock = variant.stock;
+          cart.items[itemIndex].price = variant.price; // Update snapshot
+          cart.items[itemIndex].variantName = variant.name;
+        }
+      } else {
+        const product = await Product.findById(productId);
+        if (product) {
+          stock = product.stock;
+          cart.items[itemIndex].price = product.price; // Update snapshot
+          cart.items[itemIndex].title = product.title;
+          cart.items[itemIndex].image = product.images?.[0] || '';
+        }
+      }
+
+      if (stock !== undefined && stock < qty) {
+        return next(createError(400, `Only ${stock} items available in stock`));
       }
 
       cart.items[itemIndex].qty = qty;
-      
-      // Update price snapshot if product exists (optional: keeps price in sync)
-      if (product) {
-        cart.items[itemIndex].price = product.price;
-        cart.items[itemIndex].title = product.title;
-        cart.items[itemIndex].image = product.images?.[0] || '';
-      }
     }
 
     // Save cart (pre-save hook will recalculate total)
@@ -263,9 +323,11 @@ export const updateCartItem = async (req, res, next) => {
 
 /**
  * Remove item from cart
+ * Supports variants: must provide variantId if the cart item has one
  * @route DELETE /api/cart/item
  * @access Private (requires auth)
  * @body {String} productId - Product ID to remove
+ * @body {String} [variantId] - Optional variant ID (required if item has variant)
  * @returns {Object} Updated cart
  */
 export const removeCartItem = async (req, res, next) => {
@@ -275,7 +337,7 @@ export const removeCartItem = async (req, res, next) => {
       return next(createError(401, 'Authentication required'));
     }
 
-    const { productId } = req.body;
+    const { productId, variantId } = req.body;
     const userId = req.user.id;
 
     // Validate input
@@ -294,10 +356,15 @@ export const removeCartItem = async (req, res, next) => {
       return next(createError(404, 'Cart not found'));
     }
 
-    // Find the item in cart
-    const itemIndex = cart.items.findIndex(
-      item => item.productId.toString() === productId
-    );
+    // Find the item in cart using composite key
+    const effectiveVariantId = variantId || null;
+    const itemIndex = cart.items.findIndex(item => {
+      const productMatch = item.productId.toString() === productId;
+      const variantMatch = effectiveVariantId
+        ? (item.variantId && item.variantId.toString() === effectiveVariantId.toString())
+        : !item.variantId;
+      return productMatch && variantMatch;
+    });
 
     if (itemIndex === -1) {
       return next(createError(404, 'Item not found in cart'));
