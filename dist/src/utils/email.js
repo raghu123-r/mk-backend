@@ -1,18 +1,19 @@
 /**
  * Kitchen Kettles Email Utility
- * Uses Nodemailer with Gmail SMTP
+ * Uses Nodemailer with Gmail OAuth2
  * 
  * Environment Variables Required:
  * - EMAIL_USER: Your Gmail address
- * - EMAIL_APP_PASSWORD: 16-digit Google App Password (not your regular password)
- * - APP_URL: Frontend URL (e.g., http://localhost:3000
+ * - EMAIL_CLIENT_ID: Google OAuth2 Client ID
+ * - EMAIL_CLIENT_SECRET: Google OAuth2 Client Secret
+ * - EMAIL_REFRESH_TOKEN: Google OAuth2 Refresh Token
+ * - APP_URL: Frontend URL (e.g., http://localhost:3000)
  * 
- * Setup Gmail App Password:
- * 1. Go to Google Account → Security
- * 2. Enable 2-Factor Authentication
- * 3. Search for "App Passwords"
- * 4. Generate new app password for "Mail"
- * 5. Copy the 16-digit code to EMAIL_APP_PASSWORD
+ * Setup Gmail OAuth2:
+ * 1. Go to Google Cloud Console
+ * 2. Create OAuth2 credentials
+ * 3. Get Client ID, Client Secret, and Refresh Token
+ * 4. Add them to your .env file
  */
 
 import nodemailer from 'nodemailer';
@@ -27,19 +28,28 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 // Helper: create transporter when needed (reads env at call time)
 function getTransporter() {
   const EMAIL_USER = process.env.EMAIL_USER;
-  const EMAIL_APP_PASSWORD = process.env.EMAIL_APP_PASSWORD;
+  const EMAIL_CLIENT_ID = process.env.EMAIL_CLIENT_ID;
+  const EMAIL_CLIENT_SECRET = process.env.EMAIL_CLIENT_SECRET;
+  const EMAIL_REFRESH_TOKEN = process.env.EMAIL_REFRESH_TOKEN;
 
-  if (!EMAIL_USER || !EMAIL_APP_PASSWORD) {
-    console.warn('⚠️  EMAIL_USER or EMAIL_APP_PASSWORD not set. Email sending will fail.');
+  if (!EMAIL_USER || !EMAIL_CLIENT_ID || !EMAIL_CLIENT_SECRET || !EMAIL_REFRESH_TOKEN) {
+    console.warn('⚠️  OAuth2 credentials not set. Email sending will fail.');
+    console.warn('Required: EMAIL_USER, EMAIL_CLIENT_ID, EMAIL_CLIENT_SECRET, EMAIL_REFRESH_TOKEN');
   }
 
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
+      type: 'OAuth2',
       user: EMAIL_USER,
-      pass: EMAIL_APP_PASSWORD
+      clientId: EMAIL_CLIENT_ID,
+      clientSecret: EMAIL_CLIENT_SECRET,
+      refreshToken: EMAIL_REFRESH_TOKEN
     },
-    
+    logger: true,
+    debug: true
   });
 }
 // --- END REPLACEMENT ---
