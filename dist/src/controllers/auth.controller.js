@@ -21,7 +21,6 @@ export const requestOtp = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
     const data = await authService.requestOtp(email, purpose);
-    console.log(data.debug ? '🔧 Mock OTP generated for' : '✅ OTP email sent to', email);
     return res.status(200).json({
       statusCode: 200,
       success: true,

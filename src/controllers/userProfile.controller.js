@@ -65,7 +65,7 @@ export const getProfile = async (req, res) => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return res.status(500).json(
-      errorResponse('Server error', null, 500)
+      errorResponse('Unable to load your profile. Please try again.', null, 500)
     );
   }
 };
@@ -155,7 +155,7 @@ export const updateProfile = async (req, res) => {
     }
     
     return res.status(500).json(
-      errorResponse('Server error', null, 500)
+      errorResponse('Unable to update your profile. Please try again.', null, 500)
     );
   }
 };

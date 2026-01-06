@@ -53,7 +53,7 @@ export const listCoupons = async (req, res) => {
     }));
   } catch (error) {
     console.error('Error listing coupons:', error);
-    return res.status(500).json(errorResponse('Server error'));
+    return res.status(500).json(errorResponse('Unable to load coupons. Please try again.'));
   }
 };
 
@@ -77,7 +77,7 @@ export const getCoupon = async (req, res) => {
     return res.status(200).json(successResponse(coupon));
   } catch (error) {
     console.error('Error getting coupon:', error);
-    return res.status(500).json(errorResponse('Server error'));
+    return res.status(500).json(errorResponse('Unable to load coupon details. Please try again.'));
   }
 };
 
@@ -150,7 +150,7 @@ export const createCoupon = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json(errorResponse('Coupon code already exists'));
     }
-    return res.status(500).json(errorResponse(error.message || 'Server error'));
+    return res.status(500).json(errorResponse('Unable to create coupon. Please try again.'));
   }
 };
 
@@ -225,7 +225,7 @@ export const updateCoupon = async (req, res) => {
     return res.status(200).json(successResponse(populatedCoupon, 'Coupon updated successfully'));
   } catch (error) {
     console.error('Error updating coupon:', error);
-    return res.status(500).json(errorResponse(error.message || 'Server error'));
+    return res.status(500).json(errorResponse('Unable to update coupon. Please try again.'));
   }
 };
 
@@ -244,7 +244,7 @@ export const deleteCoupon = async (req, res) => {
     return res.status(200).json(successResponse(null, 'Coupon deleted successfully'));
   } catch (error) {
     console.error('Error deleting coupon:', error);
-    return res.status(500).json(errorResponse('Server error'));
+    return res.status(500).json(errorResponse('Unable to delete coupon. Please try again.'));
   }
 };
 
@@ -349,6 +349,6 @@ export const applyCoupon = async (req, res) => {
     }));
   } catch (error) {
     console.error('Error applying coupon:', error);
-    return res.status(500).json(errorResponse('Server error'));
+    return res.status(500).json(errorResponse('Unable to apply coupon. Please try again.'));
   }
 };
