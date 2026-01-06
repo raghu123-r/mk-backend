@@ -9,18 +9,18 @@ import { ROLES } from '../constants/roles.js';
 export const protect = async (req, _res, next) => {
   const auth = req.headers.authorization?.split(' ');
   const token = (auth?.[0] === 'Bearer' && auth[1]) || req.cookies?.adminToken || req.cookies?.accessToken;
-  if (!token) return next(createError(401, 'Not authenticated'));
+  if (!token) return next(createError(401, 'Please log in to continue'));
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
     // Handle both token formats: {sub: userId} and {id: userId}
     const userId = payload.sub || payload.id;
     const user = await User.findById(userId);
-    if (!user || !user.isActive) return next(createError(401, 'Invalid user'));
+    if (!user || !user.isActive) return next(createError(401, 'Your session is invalid. Please log in again.'));
     req.user = { id: user._id, role: user.role, email: user.email };
     next();
   } catch {
-    next(createError(401, 'Token invalid/expired'));
+    next(createError(401, 'Your session has expired. Please log in again.'));
   }
 };
 
@@ -36,7 +36,7 @@ export const requireAuth = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({
       ok: false,
-      error: 'Not authenticated'
+      error: 'Please log in to continue'
     });
   }
 
@@ -49,7 +49,7 @@ export const requireAuth = async (req, res, next) => {
     if (!userId) {
       return res.status(401).json({
         ok: false,
-        error: 'Invalid token format'
+        error: 'Your session is invalid. Please log in again.'
       });
     }
     
@@ -58,7 +58,7 @@ export const requireAuth = async (req, res, next) => {
     if (!user || !user.isActive) {
       return res.status(401).json({
         ok: false,
-        error: 'Invalid user'
+        error: 'Your session is invalid. Please log in again.'
       });
     }
     
@@ -78,7 +78,7 @@ export const requireAuth = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       ok: false,
-      error: 'Token invalid or expired'
+      error: 'Your session has expired. Please log in again.'
     });
   }
 };
@@ -91,7 +91,7 @@ export const requireAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       ok: false,
-      error: 'Authentication required'
+      error: 'Please log in to continue'
     });
   }
 
@@ -101,7 +101,7 @@ export const requireAdmin = (req, res, next) => {
   if (!adminRoles.includes(req.user.role)) {
     return res.status(403).json({
       ok: false,
-      error: 'Admin access required'
+      error: 'You do not have permission to access this resource'
     });
   }
 
@@ -115,14 +115,14 @@ const authenticate = (req, res, next) => {
   try {
     const auth = req.headers.authorization || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+    if (!token) return res.status(401).json({ message: 'Please log in to continue' });
 
     const secret = process.env.JWT_SECRET || 'secretkey';
     const payload = jwt.verify(token, secret);
     req.user = payload;
     return next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({ message: 'Your session has expired. Please log in again.' });
   }
 };
 

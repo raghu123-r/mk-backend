@@ -38,11 +38,6 @@ export const createContact = async (req, res) => {
     
     await contact.save();
 
-    // Log DB connection details for verification
-    console.log('✅ Contact saved to DB:', mongoose.connection.name || mongoose.connection.db?.databaseName);
-    console.log('   Collection:', contact.collection.name);
-    console.log('   Host:', mongoose.connection.host || 'Atlas');
-
     return res.status(201).json({
       statusCode: 201,
       success: true,
@@ -54,7 +49,7 @@ export const createContact = async (req, res) => {
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: 'Server error' },
+      error: { message: 'Unable to submit your message. Please try again or email us directly.' },
       data: null
     });
   }

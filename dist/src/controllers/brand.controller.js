@@ -78,7 +78,6 @@ async function findBrandBySlugOrId(slugOrId) {
     // 1. exact slug match
     let brand = await Brand.findOne({ slug: normalized });
     if (brand) {
-      console.log(`✅ Brand found by exact slug: ${normalized}`);
       return brand;
     }
 
@@ -87,7 +86,6 @@ async function findBrandBySlugOrId(slugOrId) {
     for (const variant of variations) {
       brand = await Brand.findOne({ slug: variant });
       if (brand) {
-        console.log(`✅ Brand found by slug variation: ${variant}`);
         return brand;
       }
     }
@@ -96,7 +94,6 @@ async function findBrandBySlugOrId(slugOrId) {
     if (mongoose.Types.ObjectId.isValid(slugOrId)) {
       brand = await Brand.findById(slugOrId);
       if (brand) {
-        console.log(`✅ Brand found by ObjectId: ${slugOrId}`);
         return brand;
       }
     }
@@ -106,15 +103,13 @@ async function findBrandBySlugOrId(slugOrId) {
     for (const b of allBrands) {
       const slugifiedName = normalizeSlug(b.name);
       if (slugVariations(slugOrId).includes(slugifiedName) || slugifiedName === normalized) {
-        console.log(`✅ Brand found by name matching: ${b.name}`);
         return b;
       }
     }
 
-    console.log(`❌ Brand not found for: ${slugOrId}`);
     return null;
   } catch (error) {
-    console.error('❌ Error in findBrandBySlugOrId:', error);
+    console.error('Error in findBrandBySlugOrId:', error);
     throw error;
   }
 }
@@ -225,7 +220,7 @@ async function buildLogoUrl(brand) {
     
     return null;
   } catch (err) {
-    console.warn('buildLogoUrl error:', err);
+    console.error('buildLogoUrl error:', err);
     return null;
   }
 }
