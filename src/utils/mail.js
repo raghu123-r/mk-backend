@@ -1,5 +1,12 @@
 /**
- * SendGrid Email Utility
+ * ⚠️ LEGACY FILE - NOT CURRENTLY IN USE ⚠️
+ * 
+ * SendGrid Email Utility (DEPRECATED)
+ * 
+ * This file is kept for reference but is NOT used in production.
+ * The application now uses Gmail OAuth2 via src/utils/email.js
+ * 
+ * DO NOT USE THIS FILE. Use src/utils/email.js instead.
  * 
  * Environment Variables Required:
  * - SENDGRID_API_KEY: Your SendGrid API key
