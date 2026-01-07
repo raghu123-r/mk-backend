@@ -1,6 +1,6 @@
 /**
  * Kitchen Kettles Email Utility
- * Uses Nodemailer with Gmail OAuth2
+ * Uses Gmail API with OAuth2 (NOT SMTP)
  * 
  * Environment Variables Required:
  * - EMAIL_USER: Your Gmail address
@@ -12,47 +12,109 @@
  * Setup Gmail OAuth2:
  * 1. Go to Google Cloud Console
  * 2. Create OAuth2 credentials
- * 3. Get Client ID, Client Secret, and Refresh Token
- * 4. Add them to your .env file
+ * 3. Enable Gmail API
+ * 4. Get Client ID, Client Secret, and Refresh Token
+ * 5. Add them to your .env file
  */
 
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
-// --- REPLACEMENT: lazy-loading transporter (prevents import-time race) ---
-/**
- * Lazy-create transporter so we read process.env at runtime (prevents import-time race).
- * Uses process.env values when an email is actually sent.
- */
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
-// Helper: create transporter when needed (reads env at call time)
-function getTransporter() {
+/**
+ * Create Gmail API client with OAuth2
+ */
+function getGmailClient() {
   const EMAIL_USER = process.env.EMAIL_USER;
   const EMAIL_CLIENT_ID = process.env.EMAIL_CLIENT_ID;
   const EMAIL_CLIENT_SECRET = process.env.EMAIL_CLIENT_SECRET;
   const EMAIL_REFRESH_TOKEN = process.env.EMAIL_REFRESH_TOKEN;
 
   if (!EMAIL_USER || !EMAIL_CLIENT_ID || !EMAIL_CLIENT_SECRET || !EMAIL_REFRESH_TOKEN) {
-    console.warn('⚠️  OAuth2 credentials not set. Email sending will fail.');
-    console.warn('Required: EMAIL_USER, EMAIL_CLIENT_ID, EMAIL_CLIENT_SECRET, EMAIL_REFRESH_TOKEN');
+    console.error('❌ OAuth2 credentials not set. Email sending will fail.');
+    console.error('Required: EMAIL_USER, EMAIL_CLIENT_ID, EMAIL_CLIENT_SECRET, EMAIL_REFRESH_TOKEN');
+    throw new Error('Email configuration is incomplete');
   }
 
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      type: 'OAuth2',
-      user: EMAIL_USER,
-      clientId: EMAIL_CLIENT_ID,
-      clientSecret: EMAIL_CLIENT_SECRET,
-      refreshToken: EMAIL_REFRESH_TOKEN
-    },
-    logger: true,
-    debug: true
+  const oauth2Client = new google.auth.OAuth2(
+    EMAIL_CLIENT_ID,
+    EMAIL_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: EMAIL_REFRESH_TOKEN
   });
+
+  return google.gmail({ version: 'v1', auth: oauth2Client });
 }
-// --- END REPLACEMENT ---
+
+/**
+ * Create raw email message in RFC 2822 format and encode to base64url
+ */
+function createRawEmail(to, from, subject, text, html) {
+  const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+  
+  const messageParts = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    text,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    html,
+    '',
+    `--${boundary}--`
+  ];
+
+  const message = messageParts.join('\r\n');
+  const encodedMessage = Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  return encodedMessage;
+}
+
+/**
+ * Send email using Gmail API
+ */
+async function sendGmailMessage(to, subject, text, html) {
+  const gmail = getGmailClient();
+  const EMAIL_USER = process.env.EMAIL_USER;
+  
+  const from = `"Kitchen Kettles" <${EMAIL_USER}>`;
+  const raw = createRawEmail(to, from, subject, text, html);
+
+  try {
+    const response = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: raw
+      }
+    });
+
+    console.log(`✅ Email sent successfully via Gmail API`);
+    console.log(`   Message ID: ${response.data.id}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Gmail API error:', error.message);
+    if (error.response) {
+      console.error('   Status:', error.response.status);
+      console.error('   Data:', JSON.stringify(error.response.data, null, 2));
+    }
+    throw error;
+  }
+}
 
 /**
  * Send OTP email to user
@@ -149,14 +211,7 @@ If you didn't request this OTP, please ignore this email.
   `.trim();
 
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: `"Kitchen Kettles" <${transporter.options.auth.user}>`,
-      to: email,
-      subject,
-      text,
-      html
-    });
+    await sendGmailMessage(email, subject, text, html);
     console.log(`✅ OTP email sent to ${email}`);
   } catch (error) {
     console.error('Email send failed:', error.message);
@@ -266,14 +321,7 @@ If you have any questions, our support team is always here to help. Happy shoppi
   `.trim();
 
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: `"Kitchen Kettles" <${transporter.options.auth.user}>`,
-      to: email,
-      subject,
-      text,
-      html
-    });
+    await sendGmailMessage(email, subject, text, html);
     console.log(`✅ Welcome email sent to ${email}`);
   } catch (error) {
     console.error('Email send failed:', error.message);
