@@ -80,12 +80,34 @@ export const getHomepageCategories = async (req, res) => {
 
 /**
  * GET /api/homepage/top-picks
- * Returns random products on each request (backend-driven randomness)
- * Default: 8 products
+ * Returns random products with pagination support for infinite scroll
+ * Query params:
+ * - limit: number of products per page (default: 8)
+ * - offset: number of products to skip (default: 0)
+ * - seed: random seed for consistent session randomization (optional)
+ * Max total: 40 products
  */
 export const getHomepageTopPicks = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 8;
+    const limit = Math.min(parseInt(req.query.limit) || 8, 40);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const seed = req.query.seed ? parseFloat(req.query.seed) : Math.random();
+
+    // Cap total results at 40 products
+    const maxProducts = 40;
+    if (offset >= maxProducts) {
+      return res.status(200).json({
+        statusCode: 200,
+        success: true,
+        error: null,
+        data: [],
+        hasMore: false,
+        total: maxProducts
+      });
+    }
+
+    // Adjust limit if offset + limit exceeds max
+    const adjustedLimit = Math.min(limit, maxProducts - offset);
 
     // Get total count of active products
     const totalCount = await Product.countDocuments({ isActive: true });
@@ -95,16 +117,25 @@ export const getHomepageTopPicks = async (req, res) => {
         statusCode: 200,
         success: true,
         error: null,
-        data: []
+        data: [],
+        hasMore: false,
+        total: 0
       });
     }
 
-    // Calculate how many products to fetch for randomization pool
-    // Use a larger pool to ensure better randomness
-    const poolSize = Math.min(totalCount, limit * 3);
-    const randomSkip = Math.floor(Math.random() * Math.max(0, totalCount - poolSize));
+    // For session consistency, use seed to generate deterministic random order
+    // Fetch up to maxProducts (40) and shuffle using seed
+    const poolSize = Math.min(totalCount, maxProducts * 2); // Larger pool for better randomness
+    
+    // Use seed-based random skip
+    const seededRandom = () => {
+      const x = Math.sin(seed * 9999) * 10000;
+      return x - Math.floor(x);
+    };
+    
+    const randomSkip = Math.floor(seededRandom() * Math.max(0, totalCount - poolSize));
 
-    // Fetch a pool of products and randomly select from them
+    // Fetch a pool of products
     const productPool = await Product
       .find({ isActive: true })
       .select('_id title slug images price mrp stock')
@@ -112,15 +143,37 @@ export const getHomepageTopPicks = async (req, res) => {
       .limit(poolSize)
       .lean();
 
-    // Shuffle the pool and take the requested limit
-    const shuffled = productPool.sort(() => Math.random() - 0.5);
-    const randomProducts = shuffled.slice(0, limit);
+    // Create deterministic shuffle using seed
+    const shuffleWithSeed = (array, seedValue) => {
+      const shuffled = [...array];
+      let currentSeed = seedValue;
+      
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        // Generate deterministic random number
+        const x = Math.sin(currentSeed * (i + 1)) * 10000;
+        const random = x - Math.floor(x);
+        const j = Math.floor(random * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        currentSeed = random; // Update seed for next iteration
+      }
+      
+      return shuffled;
+    };
+
+    // Shuffle using seed and slice based on offset/limit
+    const shuffled = shuffleWithSeed(productPool, seed);
+    const paginatedProducts = shuffled.slice(offset, offset + adjustedLimit);
+
+    const hasMore = (offset + adjustedLimit) < maxProducts && (offset + adjustedLimit) < shuffled.length;
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: randomProducts
+      data: paginatedProducts,
+      hasMore,
+      total: Math.min(shuffled.length, maxProducts),
+      seed // Return seed so frontend can use it for subsequent requests
     });
   } catch (error) {
     console.error('Homepage top picks error:', error);
@@ -128,7 +181,8 @@ export const getHomepageTopPicks = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: 'Failed to fetch homepage products' },
-      data: []
+      data: [],
+      hasMore: false
     });
   }
 };
