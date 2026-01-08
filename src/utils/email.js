@@ -84,7 +84,7 @@ function createRawEmail(to, from, subject, text, html) {
 
   return encodedMessage;
 }
-console.log("OTP will be sent to:", email);
+
 
 /**
  * Send email using Gmail API
