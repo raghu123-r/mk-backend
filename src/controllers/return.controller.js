@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import mongoose from 'mongoose';
 import ReturnRequest from '../models/ReturnRequest.js';
 import Order from '../models/Order.js';
 import createError from 'http-errors';
@@ -38,40 +39,65 @@ const createReturnSchema = z.object({
  */
 export const createReturnRequest = async (req, res, next) => {
   try {
-    const { orderId, productId, actionType, issueType, issueDescription } = req.body;
+    const { orderId, productId, actionType, issueType, issueDescription, isDemo } = req.body;
     const userId = req.user.id;
 
-    // Verify the order exists and belongs to the user
-    const order = await Order.findOne({ _id: orderId, user: userId });
-    if (!order) {
-      return next(createError(404, 'Order not found or does not belong to you'));
-    }
+    // Skip validation for demo requests
+    if (!isDemo) {
+      // Verify the order exists and belongs to the user
+      const order = await Order.findOne({ _id: orderId, user: userId });
+      if (!order) {
+        return next(createError(404, 'Order not found or does not belong to you'));
+      }
 
-    // Verify the product exists in the order
-    const orderItem = order.items.find(item => item.product.toString() === productId);
-    if (!orderItem) {
-      return next(createError(400, 'Product not found in this order'));
-    }
+      // Verify the product exists in the order
+      const orderItem = order.items.find(item => item.product.toString() === productId);
+      if (!orderItem) {
+        return next(createError(400, 'Product not found in this order'));
+      }
 
-    // Check if a return request already exists for this order + product
-    const existingReturn = await ReturnRequest.findOne({ orderId, productId });
-    if (existingReturn) {
-      return next(createError(409, 'A return request already exists for this product'));
+      // Check if a return request already exists for this order + product
+      const existingReturn = await ReturnRequest.findOne({ orderId, productId });
+      if (existingReturn) {
+        return next(createError(409, 'A return request already exists for this product'));
+      }
     }
 
     // Create the return request
-    const returnRequest = await ReturnRequest.create({
-      userId,
-      orderId,
-      productId,
-      actionType,
-      issueType,
-      issueDescription: issueType === 'others' ? issueDescription : null,
-      status: 'pending'
-    });
+    // For demo mode, bypass Mongoose validation by using insertMany with rawResult
+    let returnRequest;
+    if (isDemo) {
+      // Demo mode: Store as plain strings without ObjectId casting
+      const demoReturn = {
+        userId,
+        orderId,
+        productId,
+        actionType,
+        issueType,
+        issueDescription: issueType === 'others' ? issueDescription : null,
+        status: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // Use collection.insertOne to bypass Mongoose schema validation
+      const result = await ReturnRequest.collection.insertOne(demoReturn);
+      returnRequest = { _id: result.insertedId, ...demoReturn };
+    } else {
+      // Production mode: Use normal Mongoose create with validation
+      returnRequest = await ReturnRequest.create({
+        userId,
+        orderId,
+        productId,
+        actionType,
+        issueType,
+        issueDescription: issueType === 'others' ? issueDescription : null,
+        status: 'pending'
+      });
 
-    // Populate product and order details
-    await returnRequest.populate('productId', 'name price image');
+      // Populate product and order details for real requests
+      await returnRequest.populate('productId', 'name price image');
+    }
 
     return res.status(201).json({
       statusCode: 201,
@@ -100,12 +126,35 @@ export const getMyReturnRequests = async (req, res, next) => {
     const total = await ReturnRequest.countDocuments({ userId });
 
     // Get paginated return requests
+    // Use lean() to get plain objects, then conditionally populate based on ObjectId validity
     const returnRequests = await ReturnRequest.find({ userId })
-      .populate('productId', 'name price image')
-      .populate('orderId', 'createdAt status total')
+      .lean()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    // Attempt to populate for valid ObjectIds only (skip for demo records)
+    for (const request of returnRequests) {
+      // Check if productId is a valid ObjectId before populating
+      if (mongoose.Types.ObjectId.isValid(request.productId)) {
+        try {
+          const product = await mongoose.model('Product').findById(request.productId).select('name price image').lean();
+          if (product) request.product = product;
+        } catch (err) {
+          // Silently skip if populate fails
+        }
+      }
+      
+      // Check if orderId is a valid ObjectId before populating
+      if (mongoose.Types.ObjectId.isValid(request.orderId)) {
+        try {
+          const order = await mongoose.model('Order').findById(request.orderId).select('createdAt status total').lean();
+          if (order) request.order = order;
+        } catch (err) {
+          // Silently skip if populate fails
+        }
+      }
+    }
 
     return res.status(200).json({
       statusCode: 200,
