@@ -11,6 +11,7 @@ import cartRoutes from './cart.routes.js';
 import couponsRoutes from './coupons.routes.js';
 import reviewRoutes from './review.routes.js';
 import homepageRoutes from './homepage.routes.js';
+import returnRoutes from './return.routes.js';
 
 // ADMIN AUTH
 import adminAuthRoutes from './admin.auth.routes.js';
@@ -118,6 +119,8 @@ router.use('/brands', brandAliases);
 
 router.use('/orders', orderRoutes);
 router.use('/orders', orderAliases);
+
+router.use('/returns', returnRoutes);
 
 router.use('/upload', uploadRoutes);
 
