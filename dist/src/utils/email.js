@@ -85,6 +85,7 @@ function createRawEmail(to, from, subject, text, html) {
   return encodedMessage;
 }
 
+
 /**
  * Send email using Gmail API
  */

@@ -3,6 +3,65 @@ import Product from '../models/Product.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
 /**
+ * Get active coupons for users (PUBLIC endpoint)
+ * GET /api/coupons/active
+ * 
+ * Returns only active coupons that are:
+ * - active: true
+ * - not expired
+ * - started (if startDate is set)
+ * - usage limit not exceeded
+ * 
+ * Does NOT expose admin-only fields like createdBy, usedCount, etc.
+ */
+export const getActiveCoupons = async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // Find all coupons that meet the basic criteria
+    const coupons = await Coupon.find({
+      active: true,
+      expiryDate: { $gte: now },
+      $or: [
+        { startDate: { $exists: false } },
+        { startDate: null },
+        { startDate: { $lte: now } }
+      ]
+    })
+    .populate('applicableProducts', 'name')
+    .populate('applicableCategories', 'name')
+    .populate('applicableBrands', 'name')
+    .lean();
+    
+    // Filter out coupons that have exceeded usage limit
+    const validCoupons = coupons.filter(coupon => {
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return false;
+      }
+      return true;
+    });
+    
+    // Return only user-safe fields
+    const userSafeCoupons = validCoupons.map(coupon => ({
+      _id: coupon._id,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      applicableProducts: coupon.applicableProducts,
+      applicableCategories: coupon.applicableCategories,
+      applicableBrands: coupon.applicableBrands,
+      expiryDate: coupon.expiryDate,
+      startDate: coupon.startDate
+    }));
+    
+    return res.status(200).json(successResponse(userSafeCoupons));
+  } catch (error) {
+    console.error('Error fetching active coupons:', error);
+    return res.status(500).json(errorResponse('Unable to load coupons. Please try again.'));
+  }
+};
+
+/**
  * Apply coupon to cart (PUBLIC endpoint)
  * POST /api/coupons/apply
  * Body: { code, cartItems: [{ productId, qty, price }], userId? }

@@ -52,6 +52,29 @@ export const createHeroImage = async (req, res) => {
       });
     }
 
+    // Enforce maximum of 8 hero images
+    const currentCount = await HeroImage.countDocuments();
+    const MAX_HERO_IMAGES = 8;
+    
+    if (currentCount >= MAX_HERO_IMAGES) {
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: 'Maximum hero section images reached. Please delete an image to add a new one.' },
+        data: null
+      });
+    }
+
+    // Check if adding these files would exceed the limit
+    if (currentCount + files.length > MAX_HERO_IMAGES) {
+      return res.status(400).json({
+        statusCode: 400,
+        success: false,
+        error: { message: `Cannot upload ${files.length} image(s). Maximum limit is ${MAX_HERO_IMAGES}. Currently ${currentCount} image(s) exist. You can upload ${MAX_HERO_IMAGES - currentCount} more.` },
+        data: null
+      });
+    }
+
     // Upload images to Supabase storage (hero-section folder)
     const uploadedFiles = await uploadMultipleFiles(files, 'hero-section', {});
 
