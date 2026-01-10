@@ -17,7 +17,47 @@ export const create = async (payload) => {
     if (!c) throw createError(400, 'Invalid category');
   }
 
-  return Product.create(payload);
+  // Validation: If hasSizes is true, variants must be provided and at least one must be default
+  if (payload.hasSizes) {
+    if (!payload.variants || !Array.isArray(payload.variants) || payload.variants.length === 0) {
+      throw createError(400, 'At least one size is required when hasSizes is enabled');
+    }
+
+    const defaultVariants = payload.variants.filter(v => v.isDefault === true);
+    if (defaultVariants.length === 0) {
+      throw createError(400, 'At least one size must be marked as default');
+    }
+    if (defaultVariants.length > 1) {
+      throw createError(400, 'Only one size can be marked as default');
+    }
+
+    // Validate each variant
+    for (const variant of payload.variants) {
+      if (!variant.name || !variant.price || !variant.mrp) {
+        throw createError(400, 'Each size must have name, price, and MRP');
+      }
+      if (variant.price > variant.mrp) {
+        throw createError(400, `Price cannot be greater than MRP for size: ${variant.name}`);
+      }
+    }
+  }
+
+  // Extract variants from payload
+  const { variants: variantsData, ...productData } = payload;
+
+  // Create the product
+  const product = await Product.create(productData);
+
+  // If hasSizes is true, create variants
+  if (payload.hasSizes && variantsData && variantsData.length > 0) {
+    const variantsToCreate = variantsData.map(v => ({
+      ...v,
+      product: product._id
+    }));
+    await ProductVariant.insertMany(variantsToCreate);
+  }
+
+  return product;
 };
 
 // LIST PRODUCTS — FIXED DEFAULT LIMIT = 50
@@ -70,9 +110,30 @@ export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) =>
       }
     },
     {
+      $lookup: {
+        from: 'productvariants',
+        localField: '_id',
+        foreignField: 'product',
+        as: 'variants'
+      }
+    },
+    {
       $addFields: {
         brand: { $arrayElemAt: ['$brandData', 0] },
-        category: { $arrayElemAt: ['$categoryData', 0] }
+        category: { $arrayElemAt: ['$categoryData', 0] },
+        // Find default variant
+        defaultVariant: {
+          $arrayElemAt: [
+            {
+              $filter: {
+                input: '$variants',
+                as: 'variant',
+                cond: { $eq: ['$$variant.isDefault', true] }
+              }
+            },
+            0
+          ]
+        }
       }
     },
     {
@@ -135,6 +196,12 @@ export const getBySlug = async (slug) => {
   const productObj = product.toObject();
   if (variants.length > 0) {
     productObj.variants = variants;
+    
+    // Find default variant and use its price/stock if available
+    const defaultVariant = variants.find(v => v.isDefault === true);
+    if (defaultVariant) {
+      productObj.defaultVariant = defaultVariant;
+    }
   }
 
   return productObj;
@@ -142,7 +209,81 @@ export const getBySlug = async (slug) => {
 
 // UPDATE PRODUCT BY ID
 export const updateProductById = async (id, updateData) => {
-  const updated = await Product.findByIdAndUpdate(id, updateData, { new: true }).lean();
+  // Validation: If hasSizes is being set to true, variants must be provided
+  if (updateData.hasSizes === true && updateData.variants) {
+    if (!Array.isArray(updateData.variants) || updateData.variants.length === 0) {
+      throw createError(400, 'At least one size is required when hasSizes is enabled');
+    }
+
+    const defaultVariants = updateData.variants.filter(v => v.isDefault === true);
+    if (defaultVariants.length === 0) {
+      throw createError(400, 'At least one size must be marked as default');
+    }
+    if (defaultVariants.length > 1) {
+      throw createError(400, 'Only one size can be marked as default');
+    }
+
+    // Validate each variant
+    for (const variant of updateData.variants) {
+      if (!variant.name || variant.price == null || variant.mrp == null) {
+        throw createError(400, 'Each size must have name, price, and MRP');
+      }
+      if (variant.price > variant.mrp) {
+        throw createError(400, `Price cannot be greater than MRP for size: ${variant.name}`);
+      }
+    }
+  }
+
+  // Extract variants from updateData
+  const { variants: variantsData, ...productUpdates } = updateData;
+
+  // Update the product
+  const updated = await Product.findByIdAndUpdate(id, productUpdates, { new: true }).lean();
+  
+  if (!updated) {
+    return null;
+  }
+
+  // If variants are provided, update them
+  if (variantsData) {
+    // Get existing variants
+    const existingVariants = await ProductVariant.find({ product: id });
+    const existingVariantIds = new Set(existingVariants.map(v => v._id.toString()));
+
+    // Separate new variants and updates
+    const variantsToCreate = [];
+    const variantsToUpdate = [];
+    const providedVariantIds = new Set();
+
+    for (const variant of variantsData) {
+      if (variant._id && existingVariantIds.has(variant._id.toString())) {
+        // Existing variant - update it
+        variantsToUpdate.push(variant);
+        providedVariantIds.add(variant._id.toString());
+      } else {
+        // New variant - create it
+        variantsToCreate.push({ ...variant, product: id });
+      }
+    }
+
+    // Delete variants that are not in the provided list
+    const variantsToDelete = existingVariants
+      .filter(v => !providedVariantIds.has(v._id.toString()))
+      .map(v => v._id);
+
+    // Execute updates
+    await Promise.all([
+      // Create new variants
+      variantsToCreate.length > 0 ? ProductVariant.insertMany(variantsToCreate) : Promise.resolve(),
+      // Update existing variants
+      ...variantsToUpdate.map(v => 
+        ProductVariant.findByIdAndUpdate(v._id, v, { new: true })
+      ),
+      // Delete removed variants
+      variantsToDelete.length > 0 ? ProductVariant.deleteMany({ _id: { $in: variantsToDelete } }) : Promise.resolve()
+    ]);
+  }
+
   return updated;
 };
 

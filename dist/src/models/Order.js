@@ -26,7 +26,8 @@ const orderSchema = new mongoose.Schema({
   originalTotal: Number, // Total before discount
   finalTotal: Number, // Total after discount (same as total if no coupon)
 
-  // ----- CORRECT: root-level order status with full enum -----
+  // Root-level order status
+  // Note: 'replace' removed - return/refund logic handled via separate ReturnRequest model
   status: {
     type: String,
     enum: [
@@ -37,8 +38,7 @@ const orderSchema = new mongoose.Schema({
       'shipped',
       'delivered',
       'cancelled',
-      'rejected',
-      'replace'
+      'rejected'
     ],
     default: 'pending'
   },
