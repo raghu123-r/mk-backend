@@ -20,8 +20,7 @@ router.get('/my', protect, getMyReturnRequests);
 // GET /api/returns/order/:orderId - Get return requests for a specific order (protected)
 router.get('/order/:orderId', protect, getReturnRequestsByOrder);
 
-// PUT /api/returns/:id/status - Update return request status (admin only - future use)
-// Note: Add admin middleware when needed: protect, requireAdmin
-router.put('/:id/status', protect, updateReturnRequestStatus);
+// Note: Status updates moved to admin routes (/api/admin/returns/:id/status)
+// Users can only view their return statuses, not update them
 
 export default router;

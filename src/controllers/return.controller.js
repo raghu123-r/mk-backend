@@ -3,6 +3,11 @@ import mongoose from 'mongoose';
 import ReturnRequest from '../models/ReturnRequest.js';
 import Order from '../models/Order.js';
 import createError from 'http-errors';
+import {
+  validateStatusTransition,
+  createStatusHistoryEntry,
+  getAllowedNextStatuses
+} from '../utils/returnStatusTransitions.js';
 
 /**
  * Validation schema for creating a return request
@@ -68,6 +73,7 @@ export const createReturnRequest = async (req, res, next) => {
     let returnRequest;
     if (isDemo) {
       // Demo mode: Store as plain strings without ObjectId casting
+      const initialStatus = 'return_requested';
       const demoReturn = {
         userId,
         orderId,
@@ -75,7 +81,13 @@ export const createReturnRequest = async (req, res, next) => {
         actionType,
         issueType,
         issueDescription: issueType === 'others' ? issueDescription : null,
-        status: 'pending',
+        status: initialStatus,
+        statusHistory: [{
+          status: initialStatus,
+          updatedBy: 'system',
+          timestamp: new Date(),
+          notes: 'Return request created (demo mode)'
+        }],
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -85,6 +97,7 @@ export const createReturnRequest = async (req, res, next) => {
       returnRequest = { _id: result.insertedId, ...demoReturn };
     } else {
       // Production mode: Use normal Mongoose create with validation
+      const initialStatus = 'return_requested';
       returnRequest = await ReturnRequest.create({
         userId,
         orderId,
@@ -92,7 +105,8 @@ export const createReturnRequest = async (req, res, next) => {
         actionType,
         issueType,
         issueDescription: issueType === 'others' ? issueDescription : null,
-        status: 'pending'
+        status: initialStatus,
+        statusHistory: [createStatusHistoryEntry(initialStatus, 'system', userId, 'Return request created')]
       });
 
       // Populate product and order details for real requests
@@ -208,40 +222,153 @@ export const getReturnRequestsByOrder = async (req, res, next) => {
 };
 
 /**
- * Update return request status (Admin only - future use)
- * PUT /api/returns/:id/status
+ * Update return request status (Admin only)
+ * PATCH /api/returns/:id/status
  */
 export const updateReturnRequestStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status, adminNotes, refundAmount } = req.body;
+    
+    // Get admin ID from request (set by requireAdmin middleware)
+    const adminId = req.user?.id || req.admin?.id;
 
-    // Validate status
-    const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
-    if (!validStatuses.includes(status)) {
-      return next(createError(400, 'Invalid status'));
+    if (!status) {
+      return next(createError(400, 'Status is required'));
     }
 
-    // Find and update the return request
-    const returnRequest = await ReturnRequest.findByIdAndUpdate(
-      id,
-      { 
-        status,
-        ...(adminNotes && { adminNotes }),
-        ...(refundAmount && { refundAmount })
-      },
-      { new: true }
-    ).populate('productId', 'name price image');
-
+    // Find the return request
+    const returnRequest = await ReturnRequest.findById(id);
     if (!returnRequest) {
       return next(createError(404, 'Return request not found'));
     }
+
+    // Validate status transition
+    const validation = validateStatusTransition(
+      returnRequest.status,
+      status,
+      returnRequest.actionType
+    );
+
+    if (!validation.valid) {
+      return next(createError(400, validation.error));
+    }
+
+    // Update the status and add to history
+    returnRequest.status = status;
+    
+    // Add status history entry
+    const historyEntry = createStatusHistoryEntry(
+      status,
+      'admin',
+      adminId,
+      adminNotes || `Status updated to ${status}`
+    );
+    returnRequest.statusHistory.push(historyEntry);
+
+    // Update optional fields
+    if (adminNotes) {
+      returnRequest.adminNotes = adminNotes;
+    }
+    if (refundAmount !== undefined && refundAmount !== null) {
+      returnRequest.refundAmount = refundAmount;
+    }
+
+    await returnRequest.save();
+    
+    // Populate for response
+    await returnRequest.populate('productId', 'name price image');
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
       data: returnRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all return requests (Admin only)
+ * GET /api/admin/returns
+ * Supports filtering and pagination: ?status=return_requested&page=1&limit=20
+ */
+export const getAllReturnRequests = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    // Build filter query
+    const filter = {};
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    if (req.query.actionType) {
+      filter.actionType = req.query.actionType;
+    }
+
+    // Get total count for pagination
+    const total = await ReturnRequest.countDocuments(filter);
+
+    // Get paginated return requests with populated fields
+    const returnRequests = await ReturnRequest.find(filter)
+      .populate('userId', 'name email')
+      .populate('productId', 'name price image')
+      .populate('orderId', 'createdAt status total')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: {
+        returnRequests,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get allowed next statuses for a return request (Admin only)
+ * GET /api/admin/returns/:id/allowed-statuses
+ */
+export const getAllowedStatuses = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const returnRequest = await ReturnRequest.findById(id);
+    if (!returnRequest) {
+      return next(createError(404, 'Return request not found'));
+    }
+
+    const allowedStatuses = getAllowedNextStatuses(
+      returnRequest.status,
+      returnRequest.actionType
+    );
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: {
+        currentStatus: returnRequest.status,
+        actionType: returnRequest.actionType,
+        allowedNextStatuses: allowedStatuses
+      }
     });
   } catch (error) {
     next(error);
