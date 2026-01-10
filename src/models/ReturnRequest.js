@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 /**
  * ReturnRequest Model
- * Handles product returns, replacements, and refunds without modifying Order model
+ * Handles product returns with or without refunds
+ * PRODUCTION RULE: Only two action types allowed - 'return' and 'return_refund'
  */
 const returnRequestSchema = new mongoose.Schema({
   // Reference to user who requested the return
@@ -29,9 +30,10 @@ const returnRequestSchema = new mongoose.Schema({
   },
 
   // Action type: what the user wants
+  // ONLY two options: 'return' (return only) or 'return_refund' (return + refund)
   actionType: {
     type: String,
-    enum: ['return', 'replace', 'refund'],
+    enum: ['return', 'return_refund'],
     required: true
   },
 
