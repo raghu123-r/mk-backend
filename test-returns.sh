@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Kitchen Kettles - Return/Replace/Refund Feature Test Suite
+# Kitchen Kettles - Return/Refund Feature Test Suite
 # ============================================================================
 # This script tests the returns feature using curl ONLY.
 # Prerequisites: Backend server running on http://localhost:5001
@@ -206,7 +206,7 @@ HTTP_CODE=$(curl -s -w "%{http_code}" -o "$RESPONSE_FILE" \
     -d '{
         "orderId": "DEMO-SIMPLE-ID",
         "productId": "DEMO-PROD-123",
-        "actionType": "replace",
+        "actionType": "return_refund",
         "issueType": "damaged",
         "issueDescription": "Demo bypass validation test",
         "isDemo": true
