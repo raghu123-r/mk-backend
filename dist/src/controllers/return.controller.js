@@ -11,8 +11,8 @@ const createReturnSchema = z.object({
   body: z.object({
     orderId: z.string().min(1, 'Order ID is required'),
     productId: z.string().min(1, 'Product ID is required'),
-    actionType: z.enum(['return', 'replace', 'refund'], {
-      errorMap: () => ({ message: 'Action type must be return, replace, or refund' })
+    actionType: z.enum(['return', 'return_refund'], {
+      errorMap: () => ({ message: 'Action type must be "return" or "return_refund"' })
     }),
     issueType: z.enum(['damaged', 'wrong-item', 'quality-issue', 'late-delivery', 'others'], {
       errorMap: () => ({ message: 'Invalid issue type' })
