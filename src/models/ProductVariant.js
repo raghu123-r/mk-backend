@@ -42,6 +42,11 @@ const productVariantSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Stock cannot be negative']
   },
+  isDefault: {
+    type: Boolean,
+    default: false
+    // Only one variant per product should have isDefault: true
+  },
   attributes: {
     type: Map,
     of: String,
