@@ -14,6 +14,18 @@ const createSchema = z.object({
     price: z.number(),
     mrp: z.number().optional(),
     stock: z.number().default(0),
+    hasSizes: z.boolean().optional().default(false),
+    variants: z.array(z.object({
+      name: z.string(),
+      sku: z.string().optional(),
+      price: z.number(),
+      mrp: z.number(),
+      stock: z.number().default(0),
+      isDefault: z.boolean().optional().default(false),
+      attributes: z.record(z.string()).optional(),
+      images: z.array(z.string()).optional(),
+      isActive: z.boolean().optional().default(true)
+    })).optional(),
     attributes: z.record(z.string()).optional()
   })
 });
@@ -107,7 +119,7 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    const allowed = ['title','slug','description','brand','category','images','price','mrp','stock','attributes','isActive','meta','tags'];
+    const allowed = ['title','slug','description','brand','category','images','price','mrp','stock','attributes','isActive','meta','tags','hasSizes','variants'];
     const updateData = {};
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) updateData[key] = req.body[key];
@@ -153,7 +165,7 @@ export const updateProduct = async (req, res) => {
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: 'Server error' },
+      error: { message: err.message || 'Server error' },
       data: null
     });
   }
