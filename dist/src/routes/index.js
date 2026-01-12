@@ -97,6 +97,10 @@ if (process.env.FEATURE_ADMIN_USERS === 'true') {
   })();
 }
 
+// ⭐ Admin Returns Management API
+import adminReturnRoutes from './admin.return.routes.js';
+router.use('/admin/returns', adminReturnRoutes);
+
 // Main User Routes
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);

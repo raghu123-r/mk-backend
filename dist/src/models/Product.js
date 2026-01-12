@@ -18,6 +18,7 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   mrp: { type: Number, required: true },
   stock: { type: Number, default: 0 },
+  hasSizes: { type: Boolean, default: false }, // Flag to indicate if product has multiple sizes
   attributes: {
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 }
