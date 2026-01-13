@@ -1,5 +1,6 @@
 // kk-backend/controllers/adminProductController.js
 import Product from "../models/Product.js";
+import ProductVariant from "../models/ProductVariant.js";
 import Brand from "../models/Brand.js";
 import Category from "../models/Category.js";
 
@@ -129,34 +130,14 @@ export const getProduct = async (req, res) => {
 // CREATE PRODUCT
 export const createProduct = async (req, res) => {
   try {
-    const { title, brandId, categoryId, description, price, mrp, stock, images, isActive } = req.body;
+    const { title, brandId, categoryId, description, price, mrp, stock, images, isActive, hasSizes, variants } = req.body;
 
     // Validate required fields
-    if (!title || !brandId || !categoryId || price == null || mrp == null) {
+    if (!title || !brandId || !categoryId) {
       return res.status(400).json({
         statusCode: 400,
         success: false,
-        error: { message: "Missing required fields: title, brandId, categoryId, price, mrp" },
-        data: null
-      });
-    }
-
-    // Validate price <= mrp
-    if (parseFloat(price) > parseFloat(mrp)) {
-      return res.status(400).json({
-        statusCode: 400,
-        success: false,
-        error: { message: "Price cannot be greater than MRP" },
-        data: null
-      });
-    }
-
-    // Validate stock >= 0
-    if (stock != null && parseFloat(stock) < 0) {
-      return res.status(400).json({
-        statusCode: 400,
-        success: false,
-        error: { message: "Stock cannot be negative" },
+        error: { message: "Missing required fields: title, brandId, categoryId" },
         data: null
       });
     }
@@ -200,20 +181,152 @@ export const createProduct = async (req, res) => {
     // If images missing or empty, set to empty array
     const productImages = Array.isArray(images) && images.length > 0 ? images : [];
 
+    // Handle hasSizes logic
+    let productPrice = price;
+    let productMrp = mrp;
+    let productStock = stock != null ? stock : 0;
+
+    if (hasSizes === true) {
+      // Validate variants
+      if (!variants || !Array.isArray(variants) || variants.length === 0) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "At least one variant is required when hasSizes is enabled" },
+          data: null
+        });
+      }
+
+      // Find default variant
+      const defaultVariants = variants.filter(v => v.isDefault === true);
+      if (defaultVariants.length === 0) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Exactly one variant must be marked as default" },
+          data: null
+        });
+      }
+      if (defaultVariants.length > 1) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Only one variant can be marked as default" },
+          data: null
+        });
+      }
+
+      // Validate each variant
+      for (const variant of variants) {
+        if (!variant.name || !variant.name.trim()) {
+          return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            error: { message: "Each variant must have a name" },
+            data: null
+          });
+        }
+        if (variant.price == null || parseFloat(variant.price) <= 0) {
+          return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            error: { message: `Variant "${variant.name}" must have a valid price` },
+            data: null
+          });
+        }
+        if (variant.mrp == null || parseFloat(variant.mrp) <= 0) {
+          return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            error: { message: `Variant "${variant.name}" must have a valid MRP` },
+            data: null
+          });
+        }
+        if (parseFloat(variant.price) > parseFloat(variant.mrp)) {
+          return res.status(400).json({
+            statusCode: 400,
+            success: false,
+            error: { message: `Variant "${variant.name}": Price cannot be greater than MRP` },
+            data: null
+          });
+        }
+      }
+
+      // Use default variant's price, mrp, stock for product-level fields
+      const defaultVariant = defaultVariants[0];
+      productPrice = parseFloat(defaultVariant.price);
+      productMrp = parseFloat(defaultVariant.mrp);
+      productStock = defaultVariant.stock != null ? parseFloat(defaultVariant.stock) : 0;
+    } else {
+      // hasSizes = false, use product-level price/mrp/stock
+      if (price == null || mrp == null) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Price and MRP are required when hasSizes is false" },
+          data: null
+        });
+      }
+
+      // Validate price <= mrp
+      if (parseFloat(price) > parseFloat(mrp)) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Price cannot be greater than MRP" },
+          data: null
+        });
+      }
+
+      // Validate stock >= 0
+      if (stock != null && parseFloat(stock) < 0) {
+        return res.status(400).json({
+          statusCode: 400,
+          success: false,
+          error: { message: "Stock cannot be negative" },
+          data: null
+        });
+      }
+
+      productPrice = parseFloat(price);
+      productMrp = parseFloat(mrp);
+      productStock = stock != null ? parseFloat(stock) : 0;
+    }
+
     const newProduct = new Product({
       title,
       slug,
       brand: brandId,
       category: categoryId,
       description: description || '',
-      price: parseFloat(price),
-      mrp: parseFloat(mrp),
-      stock: stock != null ? parseFloat(stock) : 0,
+      price: productPrice,
+      mrp: productMrp,
+      stock: productStock,
       images: productImages,
+      hasSizes: hasSizes === true,
       isActive: isActive !== undefined ? isActive : true
     });
 
     await newProduct.save();
+
+    // If hasSizes is true, create ProductVariant documents
+    if (hasSizes === true && variants && variants.length > 0) {
+      const variantsToCreate = variants.map(v => ({
+        product: newProduct._id,
+        name: v.name.trim(),
+        sku: v.sku || undefined,
+        price: parseFloat(v.price),
+        mrp: parseFloat(v.mrp),
+        stock: v.stock != null ? parseFloat(v.stock) : 0,
+        isDefault: v.isDefault === true,
+        attributes: v.attributes || {},
+        images: Array.isArray(v.images) ? v.images : [],
+        isActive: v.isActive !== undefined ? v.isActive : true
+      }));
+
+      await ProductVariant.insertMany(variantsToCreate);
+    }
+
     return res.status(201).json({
       statusCode: 201,
       success: true,
