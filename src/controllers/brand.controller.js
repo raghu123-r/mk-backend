@@ -256,9 +256,44 @@ export const create = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-export const list = async (_req, res, next) => {
+export const list = async (req, res, next) => {
   try {
     // Public endpoint: only return active brands
+    // Support optional pagination - if page/limit not provided, return all (backward compatible)
+    const { page, limit } = req.query;
+    const isPaginated = page && limit;
+
+    if (isPaginated) {
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 12;
+      const skip = (pageNum - 1) * limitNum;
+
+      const [brands, total] = await Promise.all([
+        Brand.find({ isActive: true })
+          .sort({ name: 1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+        Brand.countDocuments({ isActive: true })
+      ]);
+
+      const totalPages = Math.ceil(total / limitNum);
+      const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
+
+      return res.status(200).json({
+        statusCode: 200,
+        success: true,
+        error: null,
+        data: mapped,
+        totalCount: total,
+        currentPage: pageNum,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      });
+    }
+
+    // Non-paginated: return all brands (backward compatible)
     const brands = await Brand.find({ isActive: true }).sort({ name: 1 }).lean();
     const mapped = await Promise.all((brands || []).map(mapBrandForResponseAsync));
     return res.status(200).json({
