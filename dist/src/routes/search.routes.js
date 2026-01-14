@@ -219,27 +219,109 @@ router.get("/categories", async (req, res) => {
   }
 });
 
-// 🔍 Unified Search Endpoint
+// 🔍 Unified Search Endpoint (with pagination support)
 router.get("/", async (req, res) => {
   try {
     const q = req.query.q || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const skip = (page - 1) * limit;
 
     if (!q.trim()) {
-      return res.json({ products: [], brands: [], categories: [] });
+      return res.json({ 
+        products: [], 
+        brands: [], 
+        categories: [],
+        pagination: { page: 1, pages: 0, total: 0, limit }
+      });
     }
 
-    // Search products by title, slug, description using aggregation
-    const productPipeline = [
+    // First, get matched brands and categories (only on first page for efficiency)
+    let brands = [];
+    let categories = [];
+    
+    if (page === 1) {
+      // Search brands (only active brands)
+      brands = await Brand.find({
+        $or: [
+          { name: { $regex: q, $options: "i" } },
+          { slug: { $regex: q, $options: "i" } },
+        ],
+        isActive: true,
+      }).limit(20);
+
+      // Search categories
+      categories = await Category.find({
+        $or: [
+          { name: { $regex: q, $options: "i" } },
+          { slug: { $regex: q, $options: "i" } },
+        ],
+      }).limit(20);
+    }
+
+    // Get brand and category IDs for product search
+    const brandIds = brands.length > 0 ? brands.map((b) => b._id) : [];
+    const categoryIds = categories.length > 0 ? categories.map((c) => c._id) : [];
+
+    // Build match condition for products
+    const productMatchCondition = {
+      isActive: true,
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { slug: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+      ],
+    };
+
+    // If we have matched brands/categories, include their products too
+    if (brandIds.length > 0 || categoryIds.length > 0) {
+      const additionalConditions = [];
+      if (brandIds.length > 0) {
+        additionalConditions.push({ brand: { $in: brandIds } });
+      }
+      if (categoryIds.length > 0) {
+        additionalConditions.push({ category: { $in: categoryIds } });
+      }
+      productMatchCondition.$or = [
+        ...productMatchCondition.$or,
+        ...additionalConditions,
+      ];
+    }
+
+    // Count total matching products
+    const countPipeline = [
+      { $match: productMatchCondition },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brandData",
+        },
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ["$brandData", 0] },
+        },
+      },
       {
         $match: {
           $or: [
-            { title: { $regex: q, $options: "i" } },
-            { slug: { $regex: q, $options: "i" } },
-            { description: { $regex: q, $options: "i" } },
+            { brand: { $exists: false } },
+            { "brand.isActive": { $ne: false } },
           ],
-          isActive: true,
-        }
+        },
       },
+      { $count: "total" },
+    ];
+
+    const countResult = await Product.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+    const pages = Math.ceil(total / limit);
+
+    // Fetch paginated products
+    const productPipeline = [
+      { $match: productMatchCondition },
       {
         $lookup: {
           from: "brands",
@@ -270,135 +352,19 @@ router.get("/", async (req, res) => {
           ],
         },
       },
-      { $limit: 50 },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
     ];
 
     const products = await Product.aggregate(productPipeline);
 
-    // Search brands (only active brands)
-    const brands = await Brand.find({
-      $or: [
-        { name: { $regex: q, $options: "i" } },
-        { slug: { $regex: q, $options: "i" } },
-      ],
-      isActive: true,
-    }).limit(20);
-
-    // Search categories
-    const categories = await Category.find({
-      $or: [
-        { name: { $regex: q, $options: "i" } },
-        { slug: { $regex: q, $options: "i" } },
-      ],
-    }).limit(20);
-
-    // Fetch products for matched brands using aggregation
-    let brandProducts = [];
-    if (brands.length > 0) {
-      const brandIds = brands.map((b) => b._id);
-      const brandProductPipeline = [
-        {
-          $match: {
-            brand: { $in: brandIds },
-            isActive: true,
-          }
-        },
-        {
-          $lookup: {
-            from: "brands",
-            localField: "brand",
-            foreignField: "_id",
-            as: "brandData",
-          },
-        },
-        {
-          $lookup: {
-            from: "categories",
-            localField: "category",
-            foreignField: "_id",
-            as: "categoryData",
-          },
-        },
-        {
-          $addFields: {
-            brand: { $arrayElemAt: ["$brandData", 0] },
-            category: { $arrayElemAt: ["$categoryData", 0] },
-          },
-        },
-        {
-          $match: {
-            $or: [
-              { brand: { $exists: false } },
-              { "brand.isActive": { $ne: false } },
-            ],
-          },
-        },
-        { $limit: 50 },
-      ];
-
-      brandProducts = await Product.aggregate(brandProductPipeline);
-    }
-
-    // Fetch products for matched categories using aggregation
-    let categoryProducts = [];
-    if (categories.length > 0) {
-      const categoryIds = categories.map((c) => c._id);
-      const categoryProductPipeline = [
-        {
-          $match: {
-            category: { $in: categoryIds },
-            isActive: true,
-          }
-        },
-        {
-          $lookup: {
-            from: "brands",
-            localField: "brand",
-            foreignField: "_id",
-            as: "brandData",
-          },
-        },
-        {
-          $lookup: {
-            from: "categories",
-            localField: "category",
-            foreignField: "_id",
-            as: "categoryData",
-          },
-        },
-        {
-          $addFields: {
-            brand: { $arrayElemAt: ["$brandData", 0] },
-            category: { $arrayElemAt: ["$categoryData", 0] },
-          },
-        },
-        {
-          $match: {
-            $or: [
-              { brand: { $exists: false } },
-              { "brand.isActive": { $ne: false } },
-            ],
-          },
-        },
-        { $limit: 50 },
-      ];
-
-      categoryProducts = await Product.aggregate(categoryProductPipeline);
-    }
-
-    // Merge and deduplicate products by _id
-    const allProducts = [
-      ...products.map((p) => ({ ...p, source: "product" })),
-      ...brandProducts.map((p) => ({ ...p, source: "brand" })),
-      ...categoryProducts.map((p) => ({ ...p, source: "category" })),
-    ];
-
-    // Deduplicate by _id
+    // Deduplicate products by _id (in case of overlapping matches)
     const uniqueProducts = Object.values(
-      allProducts.reduce((acc, product) => {
+      products.reduce((acc, product) => {
         const key = product._id.toString();
         if (!acc[key]) {
-          acc[key] = product;
+          acc[key] = { ...product, source: "product" };
         }
         return acc;
       }, {})
@@ -408,6 +374,13 @@ router.get("/", async (req, res) => {
       products: uniqueProducts,
       brands: brands.map((b) => ({ ...b.toObject(), source: "brand" })),
       categories: categories.map((c) => ({ ...c.toObject(), source: "category" })),
+      pagination: {
+        page,
+        pages,
+        total,
+        limit,
+        hasMore: page < pages,
+      },
     });
   } catch (error) {
     console.error("Unified search error:", error);
