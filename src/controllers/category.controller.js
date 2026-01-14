@@ -16,10 +16,54 @@ const mapCategory = (c) => ({
   updatedAt: c.updatedAt,
 });
 
-// Get all categories
+// Get all categories (with optional pagination)
 export const getCategories = async (req, res) => {
   try {
     // Public endpoint: only return active categories
+    // Support optional pagination - if page/limit not provided, return all (backward compatible)
+    const { page, limit } = req.query;
+    const isPaginated = page && limit;
+
+    if (isPaginated) {
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 12;
+      const skip = (pageNum - 1) * limitNum;
+
+      const [categories, total] = await Promise.all([
+        Category.find({ isActive: true })
+          .sort({ name: 1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(),
+        Category.countDocuments({ isActive: true })
+      ]);
+
+      const totalPages = Math.ceil(total / limitNum);
+
+      // Fix missing slugs in old records and map
+      const updated = [];
+      for (const c of categories) {
+        if (!c.slug) {
+          c.slug = c.name.toLowerCase().replace(/\s+/g, "-");
+          await Category.findByIdAndUpdate(c._id, { slug: c.slug });
+        }
+        updated.push(mapCategory(c));
+      }
+
+      return res.status(200).json({
+        statusCode: 200,
+        success: true,
+        error: null,
+        data: updated,
+        totalCount: total,
+        currentPage: pageNum,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      });
+    }
+
+    // Non-paginated: return all categories (backward compatible)
     const categories = await Category.find({ isActive: true }).sort({ name: 1 });
 
     // Fix missing slugs in old records

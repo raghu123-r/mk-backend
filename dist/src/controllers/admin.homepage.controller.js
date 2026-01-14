@@ -188,30 +188,65 @@ export const updateTopPicksConfig = async (req, res) => {
 /**
  * GET /api/admin/homepage/products-search
  * Search products for admin to select for top picks
- * Query: ?search=keyword&limit=20
+ * Query: ?search=keyword&limit=20&page=1&browse=true
+ * - search: filter by product title
+ * - limit: max products per page (default 20)
+ * - page: page number for pagination (default 1)
+ * - browse: if true, returns random products for browsing
  */
 export const searchProductsForTopPicks = async (req, res) => {
   try {
-    const { search = '', limit = 20 } = req.query;
+    const { search = '', limit = 20, page = 1, browse = 'false' } = req.query;
     const limitNum = Math.min(parseInt(limit) || 20, 50);
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const isBrowse = browse === 'true';
     
     const query = { isActive: true };
     if (search) {
       query.title = { $regex: search, $options: 'i' };
     }
     
-    const products = await Product
-      .find(query)
-      .select('_id title slug images price mrp stock')
-      .sort({ title: 1 })
-      .limit(limitNum)
-      .lean();
+    // Get total count for pagination
+    const totalCount = await Product.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / limitNum);
+    
+    let products;
+    
+    if (isBrowse && !search) {
+      // Random browse mode - use aggregation with $sample for random selection
+      // Skip based on page to get different random sets
+      const skip = (pageNum - 1) * limitNum;
+      products = await Product.aggregate([
+        { $match: query },
+        { $skip: skip },
+        { $limit: limitNum },
+        { $project: { _id: 1, title: 1, slug: 1, images: 1, price: 1, mrp: 1, stock: 1 } }
+      ]);
+    } else {
+      // Normal search or browse with pagination
+      const skip = (pageNum - 1) * limitNum;
+      products = await Product
+        .find(query)
+        .select('_id title slug images price mrp stock')
+        .sort({ title: 1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean();
+    }
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: products
+      data: products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalCount,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
     });
   } catch (error) {
     console.error('Admin search products error:', error);
