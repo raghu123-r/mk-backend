@@ -17,12 +17,20 @@ const router = Router();
  */
 router.get('/me', protect, async (req, res, next) => {
   try {
+    console.log('GET /me - req.user.id:', req.user.id);
+    if (!req.user.id) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
     const user = await User.findById(req.user.id).select('-passwordHash');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
   } catch (e) {
+    console.error('Error in /me:', e);
+    if (e.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
     next(e);
   }
 });
@@ -33,12 +41,20 @@ router.get('/me', protect, async (req, res, next) => {
  */
 router.get('/profile', protect, async (req, res, next) => {
   try {
+    console.log('GET /profile - req.user.id:', req.user.id);
+    if (!req.user.id) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
     const user = await User.findById(req.user.id).select('-passwordHash');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
   } catch (e) {
+    console.error('Error in /profile:', e);
+    if (e.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
     next(e);
   }
 });

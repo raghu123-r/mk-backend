@@ -44,8 +44,9 @@ export const getCategories = async (req, res) => {
       const updated = [];
       for (const c of categories) {
         if (!c.slug) {
-          c.slug = c.name.toLowerCase().replace(/\s+/g, "-");
-          await Category.findByIdAndUpdate(c._id, { slug: c.slug });
+          const slug = c.name.toLowerCase().replace(/\s+/g, "-");
+          await Category.findByIdAndUpdate(c._id, { slug });
+          c.slug = slug; // Update local object for response
         }
         updated.push(mapCategory(c));
       }
@@ -83,10 +84,11 @@ export const getCategories = async (req, res) => {
       data: updated
     });
   } catch (error) {
+    console.error("Error in getCategories:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Failed to fetch categories", details: error },
+      error: { message: "Failed to fetch categories", details: error.message || String(error) },
       data: null
     });
   }
@@ -143,8 +145,9 @@ export const getAllCategories = async (req, res) => {
     const updated = [];
     for (const c of categories) {
       if (!c.slug) {
-        c.slug = c.name.toLowerCase().replace(/\s+/g, "-");
-        await Category.findByIdAndUpdate(c._id, { slug: c.slug });
+        const slug = c.name.toLowerCase().replace(/\s+/g, "-");
+        await Category.findByIdAndUpdate(c._id, { slug });
+        c.slug = slug; // Update local object for response
       }
       updated.push(mapCategory(c));
     }
@@ -164,10 +167,11 @@ export const getAllCategories = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Error in getAllCategories:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Failed to fetch categories", details: error },
+      error: { message: "Failed to fetch categories", details: error.message || String(error) },
       data: null
     });
   }
@@ -207,10 +211,11 @@ export const getCategoryById = async (req, res) => {
       data: mapCategory(category)
     });
   } catch (error) {
+    console.error("Error in getCategoryById:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Error fetching category", details: error },
+      error: { message: "Error fetching category", details: error.message || String(error) },
       data: null
     });
   }
@@ -230,10 +235,11 @@ export const createCategory = async (req, res) => {
       data: mapCategory(category)
     });
   } catch (error) {
+    console.error("Error in createCategory:", error);
     return res.status(400).json({
       statusCode: 400,
       success: false,
-      error: { message: "Error creating category", details: error },
+      error: { message: "Error creating category", details: error.message || String(error) },
       data: null
     });
   }
@@ -305,10 +311,11 @@ export const updateCategory = async (req, res) => {
       data: mapCategory(updated)
     });
   } catch (error) {
+    console.error("Error in updateCategory:", error);
     return res.status(400).json({
       statusCode: 400,
       success: false,
-      error: { message: "Error updating category", details: error },
+      error: { message: "Error updating category", details: error.message || String(error) },
       data: null
     });
   }
@@ -333,10 +340,11 @@ export const deleteCategory = async (req, res) => {
       data: { message: "Category deleted" }
     });
   } catch (error) {
+    console.error("Error in deleteCategory:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Error deleting category", details: error },
+      error: { message: "Error deleting category", details: error.message || String(error) },
       data: null
     });
   }
@@ -366,10 +374,11 @@ export const disableCategory = async (req, res) => {
       data: mapCategory(category)
     });
   } catch (error) {
+    console.error("Error in disableCategory:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Error disabling category", details: error },
+      error: { message: "Error disabling category", details: error.message || String(error) },
       data: null
     });
   }
@@ -399,10 +408,11 @@ export const enableCategory = async (req, res) => {
       data: mapCategory(category)
     });
   } catch (error) {
+    console.error("Error in enableCategory:", error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
-      error: { message: "Error enabling category", details: error },
+      error: { message: "Error enabling category", details: error.message || String(error) },
       data: null
     });
   }

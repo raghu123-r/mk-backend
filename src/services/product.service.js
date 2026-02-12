@@ -62,114 +62,130 @@ export const create = async (payload) => {
 
 // LIST PRODUCTS — FIXED DEFAULT LIMIT = 50
 export const list = async ({ q, brand, category, page = 1, limit = 50 } = {}) => {
-  const matchStage = { isActive: true };
+  try {
+    console.log('Product list query:', { q, brand, category, page, limit });
+    const matchStage = { isActive: true };
 
-  if (q) matchStage.title = { $regex: q, $options: 'i' };
-  
-  // Handle brand filtering - accept ObjectId string or ObjectId
-  if (brand) {
-    if (mongoose.Types.ObjectId.isValid(brand)) {
-      matchStage.brand = new mongoose.Types.ObjectId(brand);
-    }
-  }
-
-  if (category) {
-    let categoryId = null;
-
-    if (mongoose.Types.ObjectId.isValid(category)) {
-      categoryId = new mongoose.Types.ObjectId(category);
-    } else {
-      const found = await Category.findOne({
-        $or: [{ name: category }, { slug: category }]
-      });
-      if (found) categoryId = found._id;
+    if (q) matchStage.title = { $regex: q, $options: 'i' };
+    
+    // Handle brand filtering - accept ObjectId string or ObjectId
+    if (brand) {
+      if (mongoose.Types.ObjectId.isValid(brand)) {
+        matchStage.brand = new mongoose.Types.ObjectId(brand);
+      }
     }
 
-    matchStage.category = categoryId || { $exists: false };
-  }
+    if (category) {
+      let categoryId = null;
 
-  const skip = (page - 1) * limit;
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        categoryId = new mongoose.Types.ObjectId(category);
+      } else {
+        const found = await Category.findOne({
+          $or: [{ name: category }, { slug: category }]
+        });
+        if (found) categoryId = found._id;
+      }
 
-  // Use aggregation to filter by brand.isActive at query time
-  const pipeline = [
-    { $match: matchStage },
-    {
-      $lookup: {
-        from: 'brands',
-        localField: 'brand',
-        foreignField: '_id',
-        as: 'brandData'
-      }
-    },
-    {
-      $lookup: {
-        from: 'categories',
-        localField: 'category',
-        foreignField: '_id',
-        as: 'categoryData'
-      }
-    },
-    {
-      $lookup: {
-        from: 'productvariants',
-        localField: '_id',
-        foreignField: 'product',
-        as: 'variants'
-      }
-    },
-    {
-      $addFields: {
-        brand: { $arrayElemAt: ['$brandData', 0] },
-        category: { $arrayElemAt: ['$categoryData', 0] },
-        // Find default variant
-        defaultVariant: {
-          $arrayElemAt: [
-            {
-              $filter: {
-                input: '$variants',
-                as: 'variant',
-                cond: { $eq: ['$$variant.isDefault', true] }
-              }
-            },
-            0
+      matchStage.category = categoryId || { $exists: false };
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Use aggregation to filter by brand.isActive at query time
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brand',
+          foreignField: '_id',
+          as: 'brandData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'category',
+          foreignField: '_id',
+          as: 'categoryData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'productvariants',
+          localField: '_id',
+          foreignField: 'product',
+          as: 'variants'
+        }
+      },
+      {
+        $addFields: {
+          brand: { $arrayElemAt: ['$brandData', 0] },
+          category: { $arrayElemAt: ['$categoryData', 0] },
+          // Find default variant
+          defaultVariant: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$variants',
+                  as: 'variant',
+                  cond: { $eq: ['$$variant.isDefault', true] }
+                }
+              },
+              0
+            ]
+          }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { brand: { $exists: false } },
+            { 'brand.isActive': { $ne: false } }
+          ]
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $facet: {
+          items: [
+            { $skip: skip },
+            { $limit: limit }
+          ],
+          totalCount: [
+            { $count: 'count' }
           ]
         }
       }
-    },
-    {
-      $match: {
-        $or: [
-          { brand: { $exists: false } },
-          { 'brand.isActive': { $ne: false } }
-        ]
-      }
-    },
-    { $sort: { createdAt: -1 } },
-    {
-      $facet: {
-        items: [
-          { $skip: skip },
-          { $limit: limit }
-        ],
-        totalCount: [
-          { $count: 'count' }
-        ]
-      }
+    ];
+
+    console.log('Aggregation pipeline length:', pipeline.length);
+    // Don't JSON.stringify pipeline as it may contain ObjectIds
+    let result;
+    try {
+      result = await Product.aggregate(pipeline);
+    } catch (aggError) {
+      console.error('Aggregation error:', aggError);
+      throw aggError;
     }
-  ];
+    
+    const items = result[0]?.items || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+    const pages = Math.ceil(total / limit);
 
-  const result = await Product.aggregate(pipeline);
-  
-  const items = result[0]?.items || [];
-  const total = result[0]?.totalCount[0]?.count || 0;
-  const pages = Math.ceil(total / limit);
+    console.log('List result:', { itemsCount: items.length, total, pages });
 
-  return {
-    items,
-    total,
-    page,
-    pages,
-  };
+    return {
+      items,
+      total,
+      page,
+      pages,
+    };
+  } catch (error) {
+    console.error('Error in product list service:', error);
+    throw error;
+  }
 };
 
 // GET PRODUCT BY SLUG
