@@ -15,37 +15,12 @@ const app = express();
 /* ================================
    ✅ CORS — MUST BE FIRST
 ================================ */
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001", // ✅ Your frontend port
-  "http://localhost:3002", // optional
-  "https://kkfrontend.vercel.app",
-  "https://kk-frontend-seven.vercel.app",
-  "https://mannarcraft-m5dl.vercel.app",
-  "https://kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
-  "https://kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
-  "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app",
-  "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman or curl)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.error("❌ CORS blocked:", origin);
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: '*',  // Allow all origins temporarily for testing
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 /* ================================
    Security & core middleware
