@@ -15,12 +15,38 @@ const app = express();
 /* ================================
    ✅ CORS — MUST BE FIRST
 ================================ */
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "https://mannarcraft-m5dl.vercel.app",
+  "https://kkfrontend.vercel.app",
+  "https://kk-frontend-seven.vercel.app",
+  "https://kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
+  "https://kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
+  "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app",
+  "https://kkfrontend-yltna53wg-it-alliance-techs-projects.vercel.app",
+];
+
 app.use(cors({
-  origin: '*',  // Allow all origins temporarily for testing
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    console.error("❌ CORS blocked:", origin);
+    return callback(new Error("Not allowed by CORS"), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Handle preflight OPTIONS requests
+app.options('*', cors());
 
 /* ================================
    Security & core middleware
