@@ -21,6 +21,7 @@ const allowedOrigins = [
   "http://localhost:3002", // optional
   "https://kkfrontend.vercel.app",
   "https://kk-frontend-seven.vercel.app",
+  "https://mannarcraft-m5dl.vercel.app",
   "https://kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
   "https://kkfrontend-git-develop-it-alliance-techs-projects.vercel.app",
   "https://kkfrontend-7mtclf1zt-it-alliance-techs-projects.vercel.app",
