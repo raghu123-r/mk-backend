@@ -13,7 +13,7 @@ import subCategoryRoutes from "./src/routes/subcategories.js";
 const app = express();
 
 /* ================================
-   ✅ CORS — MUST BE FIRST
+   ✅ CORS .— MUST BE FIRST
 ================================ */
 app.use(cors({
   origin: true,  // Reflect the request origin
