@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import { ROLES } from '../constants/roles.js';
 
 /**
+ * .
  * Main authentication middleware - verifies JWT token and attaches user to request
  * FIXED: Never throws server error, always responds cleanly
  */
