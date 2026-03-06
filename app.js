@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 
 import routes from "./src/routes/index.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+
 import { notFound, errorHandler } from "./src/middlewares/error.js";
 import subCategoryRoutes from "./src/routes/subcategories.js";
 
@@ -56,6 +57,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api", routes);
 app.use("/api/admin", adminRoutes);
+     // ✅ Fix: mounts /auth/request-otp etc.
 
 /* ================================
    Errors
