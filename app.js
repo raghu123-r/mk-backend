@@ -17,8 +17,10 @@ const app = express();
 ================================ */
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://localhost:3001", // ✅ Your frontend port
-  "http://localhost:3002", // optional
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "https://mannarcraft.vercel.app",
+  "https://mannarcraft-m5dl.vercel.app",
   "https://kkfrontend.vercel.app",
   "https://kk-frontend-seven.vercel.app",
   "https://kkfrontend-ib2c4p1ap-it-alliance-techs-projects.vercel.app",
@@ -33,7 +35,11 @@ app.use(
       // Allow requests with no origin (like Postman or curl)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // Allow any vercel.app subdomain (covers all preview deployments)
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
         return callback(null, true);
       } else {
         console.error("❌ CORS blocked:", origin);
