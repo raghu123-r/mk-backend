@@ -1,5 +1,5 @@
 /**
- * Kitchen Kettles Email Utility
+ * MannarCraft Email Utility
  * Uses Gmail API with OAuth2 (NOT SMTP)
  * 
  * Environment Variables Required:
@@ -93,7 +93,7 @@ async function sendGmailMessage(to, subject, text, html) {
   const gmail = getGmailClient();
   const EMAIL_USER = process.env.EMAIL_USER;
   
-  const from = `"Kitchen Kettles" <${EMAIL_USER}>`;
+  const from = `"MannarCraft" <${EMAIL_USER}>`;
   const raw = createRawEmail(to, from, subject, text, html);
 
   try {
@@ -125,7 +125,7 @@ async function sendGmailMessage(to, subject, text, html) {
  * @returns {Promise<void>}
  */
 export async function sendOTPEmail(email, otp, username = 'User') {
-  const subject = 'Your Kitchen Kettles OTP Code';
+  const subject = 'Your MannarCraft OTP Code';
   
   const html = `
     <!DOCTYPE html>
@@ -137,28 +137,28 @@ export async function sendOTPEmail(email, otp, username = 'User') {
     <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); padding: 30px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+        <div style="background: linear-gradient(135deg, #D9A441 0%, #c8922e 100%); padding: 30px 20px; text-align: center; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: bold; letter-spacing: 1px;">
-            Kitchen Kettles
+            MannarCraft
           </h1>
           <p style="margin: 8px 0 0 0; color: #FFFFFF; font-size: 14px; opacity: 0.9;">
-            Premium Kitchenware & Essentials
+            Handcrafted Heritage Cookware
           </p>
         </div>
         
         <!-- Content -->
         <div style="background-color: #FFFFFF; padding: 40px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h2 style="margin: 0 0 20px 0; color: #1E40AF; font-size: 24px;">
+          <h2 style="margin: 0 0 20px 0; color: #D9A441; font-size: 24px;">
             Hello, ${username}! 👋
           </h2>
           
           <p style="margin: 0 0 25px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-            Your one-time password (OTP) for Kitchen Kettles is:
+            Your one-time password (OTP) for MannarCraft is:
           </p>
           
           <!-- OTP Box -->
-          <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 2px solid #3B82F6; border-radius: 10px; padding: 25px; text-align: center; margin: 0 0 25px 0;">
-            <div style="font-size: 42px; font-weight: bold; color: #1E40AF; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+          <div style="background: linear-gradient(135deg, #FFF8EC 0%, #FDEBC8 100%); border: 2px solid #D9A441; border-radius: 10px; padding: 25px; text-align: center; margin: 0 0 25px 0;">
+            <div style="font-size: 42px; font-weight: bold; color: #D9A441; letter-spacing: 8px; font-family: 'Courier New', monospace;">
               ${otp}
             </div>
           </div>
@@ -174,7 +174,7 @@ export async function sendOTPEmail(email, otp, username = 'User') {
           <!-- Security Warning -->
           <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 15px; border-radius: 6px; margin: 0 0 20px 0;">
             <p style="margin: 0; color: #991B1B; font-size: 13px; line-height: 1.5;">
-              🔒 <strong>Security Notice:</strong> Never share this OTP with anyone. Kitchen Kettles will never ask for your OTP via phone or email.
+              🔒 <strong>Security Notice:</strong> Never share this OTP with anyone. MannarCraft will never ask for your OTP via phone or email.
             </p>
           </div>
           
@@ -186,7 +186,7 @@ export async function sendOTPEmail(email, otp, username = 'User') {
         <!-- Footer -->
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
           <p style="margin: 0 0 10px 0;">
-            © ${new Date().getFullYear()} Kitchen Kettles. All rights reserved.
+            © ${new Date().getFullYear()} MannarCraft. All rights reserved.
           </p>
           <p style="margin: 0;">
             This is an automated message. Please do not reply to this email.
@@ -200,7 +200,7 @@ export async function sendOTPEmail(email, otp, username = 'User') {
   const text = `
 Hello ${username},
 
-Your Kitchen Kettles OTP code is: ${otp}
+Your MannarCraft OTP code is: ${otp}
 
 This code expires in 5 minutes. Enter it to complete your login or signup.
 
@@ -208,7 +208,7 @@ Security Notice: Never share this OTP with anyone.
 
 If you didn't request this OTP, please ignore this email.
 
-© ${new Date().getFullYear()} Kitchen Kettles
+© ${new Date().getFullYear()} MannarCraft
   `.trim();
 
   try {
@@ -227,7 +227,7 @@ If you didn't request this OTP, please ignore this email.
  * @returns {Promise<void>}
  */
 export async function sendWelcomeEmail(email, username = 'User') {
-  const subject = 'Welcome to Kitchen Kettles! 🎉';
+  const subject = 'Welcome to MannarCraft! 🎉';
   
   const html = `
     <!DOCTYPE html>
@@ -239,43 +239,43 @@ export async function sendWelcomeEmail(email, username = 'User') {
     <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
       <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+        <div style="background: linear-gradient(135deg, #D9A441 0%, #c8922e 100%); padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; color: #FFFFFF; font-size: 32px; font-weight: bold; letter-spacing: 1px;">
-            Kitchen Kettles
+            MannarCraft
           </h1>
           <p style="margin: 12px 0 0 0; color: #FFFFFF; font-size: 16px; opacity: 0.95;">
-            Premium Kitchenware & Essentials
+            Handcrafted Heritage Cookware
           </p>
         </div>
         
         <!-- Content -->
         <div style="background-color: #FFFFFF; padding: 40px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h2 style="margin: 0 0 20px 0; color: #1E40AF; font-size: 28px;">
+          <h2 style="margin: 0 0 20px 0; color: #D9A441; font-size: 28px;">
             Welcome, ${username}! 🎉
           </h2>
           
           <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-            Thank you for joining <strong>Kitchen Kettles</strong> – your destination for premium kitchenware and culinary essentials!
+            Thank you for joining <strong>MannarCraft</strong> – your destination for handcrafted heritage cookware!
           </p>
           
           <p style="margin: 0 0 25px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-            We're thrilled to have you as part of our community. Get ready to discover high-quality products that will transform your cooking experience.
+            We're thrilled to have you as part of our community. Get ready to discover high-quality Bronze, Brass, and Cast Iron cookware that will transform your cooking experience.
           </p>
           
           <!-- CTA Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/login" style="display: inline-block; background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%); color: #FFFFFF; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(30, 64, 175, 0.3);">
+            <a href="${APP_URL}/login" style="display: inline-block; background: linear-gradient(135deg, #D9A441 0%, #c8922e 100%); color: #FFFFFF; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(217, 164, 65, 0.3);">
               Start Shopping
             </a>
           </div>
           
           <!-- Benefits -->
           <div style="background-color: #F9FAFB; border-radius: 8px; padding: 20px; margin: 25px 0;">
-            <h3 style="margin: 0 0 15px 0; color: #1E40AF; font-size: 18px;">
+            <h3 style="margin: 0 0 15px 0; color: #D9A441; font-size: 18px;">
               What's Next?
             </h3>
             <ul style="margin: 0; padding: 0 0 0 20px; color: #374151; font-size: 14px; line-height: 1.8;">
-              <li>Browse our curated collection of premium kitchenware</li>
+              <li>Browse our curated collection of heritage cookware</li>
               <li>Enjoy exclusive deals and member-only offers</li>
               <li>Track your orders in real-time</li>
               <li>Get personalized product recommendations</li>
@@ -290,7 +290,7 @@ export async function sendWelcomeEmail(email, username = 'User') {
         <!-- Footer -->
         <div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 12px;">
           <p style="margin: 0 0 10px 0;">
-            © ${new Date().getFullYear()} Kitchen Kettles. All rights reserved.
+            © ${new Date().getFullYear()} MannarCraft. All rights reserved.
           </p>
           <p style="margin: 0;">
             This is an automated message. Please do not reply to this email.
@@ -302,23 +302,23 @@ export async function sendWelcomeEmail(email, username = 'User') {
   `;
 
   const text = `
-Welcome to Kitchen Kettles, ${username}!
+Welcome to MannarCraft, ${username}!
 
-Thank you for joining Kitchen Kettles – your destination for premium kitchenware and culinary essentials!
+Thank you for joining MannarCraft – your destination for handcrafted heritage cookware!
 
-We're thrilled to have you as part of our community. Get ready to discover high-quality products that will transform your cooking experience.
+We're thrilled to have you as part of our community. Get ready to discover high-quality Bronze, Brass, and Cast Iron cookware that will transform your cooking experience.
 
 Start shopping now: ${APP_URL}/login
 
 What's Next?
-• Browse our curated collection of premium kitchenware
-• Enjoy exclusive deals and member-only offers
-• Track your orders in real-time
-• Get personalized product recommendations
+- Browse our curated collection of heritage cookware
+- Enjoy exclusive deals and member-only offers
+- Track your orders in real-time
+- Get personalized product recommendations
 
 If you have any questions, our support team is always here to help. Happy shopping!
 
-© ${new Date().getFullYear()} Kitchen Kettles
+© ${new Date().getFullYear()} MannarCraft
   `.trim();
 
   try {
