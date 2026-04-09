@@ -71,7 +71,6 @@ export const create = async (req, res, next) => {
 
 export const list = async (req, res, next) => {
   try {
-    console.log('Product list controller - req.query:', req.query);
     const parsed = listSchema.parse({ query: req.query });
 
     const query = {
@@ -83,7 +82,6 @@ export const list = async (req, res, next) => {
       limit: Number(parsed.query.limit)
     };
 
-    console.log('Parsed query:', query);
     const data = await productService.list(query);
 
     return res.status(200).json({
@@ -93,7 +91,6 @@ export const list = async (req, res, next) => {
       data
     });
   } catch (err) {
-    console.error('Error in product list controller:', err);
     next(err);
   }
 };

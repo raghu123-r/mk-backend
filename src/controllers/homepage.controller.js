@@ -1,33 +1,33 @@
 /**
- * Homepage controller
- * Lightweight, optimized endpoints for homepage data
- * Returns minimal fields to reduce payload size
+ * Homepage Controller (PUBLIC)
+ * Place this file at: src/controllers/homepage.controller.js
+ * REPLACES your existing homepage.controller.js
  */
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
 import Product from '../models/Product.js';
 import HeroImage from '../models/HeroImage.js';
 import HomepageSettings from '../models/HomepageSettings.js';
+import HomepageSection from '../models/HomepageSection.js';
 
 /**
  * GET /api/homepage/brands
- * Returns exactly 4 active brands with minimal fields
- * Filtered by admin-selected homepage priority
+ * Returns only brands marked showOnHomepage, sorted by homepageOrder
  */
 export const getHomepageBrands = async (req, res) => {
   try {
     const brands = await Brand
       .find({ isActive: true, showOnHomepage: true })
-      .select('_id name slug logoUrl homepageOrder')
-      .sort({ homepageOrder: 1 }) // Sort by priority order
-      .limit(4)
+      .select('_id name slug logo')
+      .sort({ homepageOrder: 1, name: 1 })
+      .limit(8)
       .lean();
-      
+
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: brands
+      data: brands,
     });
   } catch (error) {
     console.error('Homepage brands error:', error);
@@ -35,38 +35,29 @@ export const getHomepageBrands = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: 'Failed to fetch homepage brands' },
-      data: []
+      data: null,
     });
   }
 };
 
 /**
  * GET /api/homepage/categories
- * Returns exactly 4 active categories with minimal fields
- * Filtered by admin-selected homepage priority
+ * Returns only categories marked showOnHomepage, sorted by homepageOrder
  */
 export const getHomepageCategories = async (req, res) => {
   try {
     const categories = await Category
       .find({ isActive: true, showOnHomepage: true })
-      .select('_id name slug image image_url homepageOrder')
-      .sort({ homepageOrder: 1 }) // Sort by priority order
-      .limit(4)
+      .select('_id name slug image')
+      .sort({ homepageOrder: 1, name: 1 })
+      .limit(12)
       .lean();
-
-    // Normalize image field
-    const normalized = categories.map(c => ({
-      _id: c._id,
-      name: c.name,
-      slug: c.slug,
-      imageUrl: c.image_url || c.image || ''
-    }));
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: normalized
+      data: categories,
     });
   } catch (error) {
     console.error('Homepage categories error:', error);
@@ -74,218 +65,59 @@ export const getHomepageCategories = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: 'Failed to fetch homepage categories' },
-      data: []
+      data: null,
     });
   }
 };
 
 /**
  * GET /api/homepage/top-picks
- * Returns products with pagination support for infinite scroll
- * First batch (offset=0): Admin-pinned products first, then random to fill 8 slots
- * Subsequent batches: Random products only (excluding pinned ones)
- * Query params:
- * - limit: number of products per page (default: 8)
- * - offset: number of products to skip (default: 0)
- * - seed: random seed for consistent session randomization (optional)
- * Max total: 40 products
+ * Returns random/pinned products for the Top Picks section
+ * Query: ?limit=8&offset=0&seed=12345
  */
 export const getHomepageTopPicks = async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 8, 40);
-    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
-    const seed = req.query.seed ? parseFloat(req.query.seed) : Math.random();
+    const limit = Math.min(parseInt(req.query.limit) || 8, 20);
+    const offset = parseInt(req.query.offset) || 0;
+    const seed = parseInt(req.query.seed) || Math.floor(Math.random() * 100000);
 
-    // Cap total results at 40 products
-    const maxProducts = 40;
-    if (offset >= maxProducts) {
-      return res.status(200).json({
-        statusCode: 200,
-        success: true,
-        error: null,
-        data: [],
-        hasMore: false,
-        total: maxProducts
-      });
-    }
-
-    // Get admin pinned products config
     const settings = await HomepageSettings.getSettings();
-    const pinnedIds = settings.pinnedProductIds || [];
-    const pinnedIdsSet = new Set(pinnedIds.map(id => id.toString()));
 
-    // Adjust limit if offset + limit exceeds max
-    const adjustedLimit = Math.min(limit, maxProducts - offset);
+    // If there are pinned products, show them first
+    if (settings?.pinnedProductIds?.length > 0 && offset === 0) {
+      const pinnedProducts = await Product
+        .find({
+          _id: { $in: settings.pinnedProductIds },
+          isActive: true,
+        })
+        .select('_id title slug images price mrp stock')
+        .lean();
 
-    // FIRST BATCH (offset=0): Include pinned products at the start
-    if (offset === 0) {
-      // Fetch pinned products (maintaining order)
-      let pinnedProducts = [];
-      if (pinnedIds.length > 0) {
-        const pinnedDocs = await Product
-          .find({ _id: { $in: pinnedIds }, isActive: true })
-          .select('_id title slug images price mrp stock')
-          .lean();
-        
-        // Preserve admin-defined order
-        pinnedProducts = pinnedIds
-          .map(id => pinnedDocs.find(p => p._id.toString() === id.toString()))
-          .filter(Boolean);
-      }
+      // Preserve pinned order
+      const ordered = settings.pinnedProductIds
+        .map(id => pinnedProducts.find(p => p._id.toString() === id.toString()))
+        .filter(Boolean);
 
-      // Calculate how many random products needed to fill the batch
-      const pinnedCount = pinnedProducts.length;
-      const randomNeeded = Math.max(0, adjustedLimit - pinnedCount);
-
-      let randomProducts = [];
-      if (randomNeeded > 0) {
-        // Fetch random products excluding pinned ones
-        const excludeIds = pinnedIds.length > 0 ? pinnedIds : [];
-        const totalCount = await Product.countDocuments({ 
-          isActive: true, 
-          _id: { $nin: excludeIds } 
-        });
-
-        if (totalCount > 0) {
-          const poolSize = Math.min(totalCount, maxProducts * 2);
-          
-          // Seed-based random skip
-          const seededRandom = () => {
-            const x = Math.sin(seed * 9999) * 10000;
-            return x - Math.floor(x);
-          };
-          const randomSkip = Math.floor(seededRandom() * Math.max(0, totalCount - poolSize));
-
-          const productPool = await Product
-            .find({ isActive: true, _id: { $nin: excludeIds } })
-            .select('_id title slug images price mrp stock')
-            .skip(randomSkip)
-            .limit(poolSize)
-            .lean();
-
-          // Shuffle with seed
-          const shuffled = shuffleWithSeed(productPool, seed);
-          randomProducts = shuffled.slice(0, randomNeeded);
-        }
-      }
-
-      // Combine: pinned first, then random
-      const result = [...pinnedProducts, ...randomProducts];
-      
-      const hasMore = adjustedLimit < maxProducts && (pinnedCount + randomProducts.length) >= adjustedLimit;
+      const totalCount = await Product.countDocuments({ isActive: true });
 
       return res.status(200).json({
         statusCode: 200,
         success: true,
         error: null,
-        data: result,
-        hasMore,
-        total: maxProducts,
+        data: ordered.slice(0, limit),
         seed,
-        pinnedCount // Tell frontend how many are pinned (for reference)
+        hasMore: totalCount > limit,
       });
     }
 
-    // SUBSEQUENT BATCHES (offset > 0): Only random products, exclude pinned
-    const excludeIds = pinnedIds.length > 0 ? pinnedIds : [];
-    const totalCount = await Product.countDocuments({ 
-      isActive: true, 
-      _id: { $nin: excludeIds } 
-    });
+    // Otherwise return random products using seed-based skip
+    const totalCount = await Product.countDocuments({ isActive: true });
+    const skipAmount = (seed + offset) % Math.max(totalCount - limit, 1);
 
-    if (totalCount === 0) {
-      return res.status(200).json({
-        statusCode: 200,
-        success: true,
-        error: null,
-        data: [],
-        hasMore: false,
-        total: 0
-      });
-    }
-
-    const poolSize = Math.min(totalCount, maxProducts * 2);
-    
-    const seededRandom = () => {
-      const x = Math.sin(seed * 9999) * 10000;
-      return x - Math.floor(x);
-    };
-    const randomSkip = Math.floor(seededRandom() * Math.max(0, totalCount - poolSize));
-
-    const productPool = await Product
-      .find({ isActive: true, _id: { $nin: excludeIds } })
-      .select('_id title slug images price mrp stock')
-      .skip(randomSkip)
-      .limit(poolSize)
-      .lean();
-
-    const shuffled = shuffleWithSeed(productPool, seed);
-    
-    // For subsequent batches, adjust offset to account for pinned products in first batch
-    // Since first batch had pinnedCount pinned + (limit - pinnedCount) random,
-    // the effective random offset is: offset - (first batch random count)
-    // But since we want consistent pagination, we just slice from offset position
-    // in the shuffled array (excluding what was shown in first batch)
-    const pinnedCount = pinnedIds.length;
-    const firstBatchRandomCount = Math.min(limit, maxProducts) - Math.min(pinnedCount, limit);
-    const effectiveRandomOffset = offset - Math.min(pinnedCount, limit);
-    
-    // Slice from the shuffled pool
-    const startIndex = effectiveRandomOffset > 0 ? effectiveRandomOffset : 0;
-    const paginatedProducts = shuffled.slice(startIndex, startIndex + adjustedLimit);
-
-    const hasMore = (offset + adjustedLimit) < maxProducts && (startIndex + adjustedLimit) < shuffled.length;
-
-    return res.status(200).json({
-      statusCode: 200,
-      success: true,
-      error: null,
-      data: paginatedProducts,
-      hasMore,
-      total: Math.min(shuffled.length + pinnedCount, maxProducts),
-      seed
-    });
-  } catch (error) {
-    console.error('Homepage top picks error:', error);
-    return res.status(500).json({
-      statusCode: 500,
-      success: false,
-      error: { message: 'Failed to fetch homepage products' },
-      data: [],
-      hasMore: false
-    });
-  }
-};
-
-// Helper: Deterministic shuffle using seed
-function shuffleWithSeed(array, seedValue) {
-  const shuffled = [...array];
-  let currentSeed = seedValue;
-  
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const x = Math.sin(currentSeed * (i + 1)) * 10000;
-    const random = x - Math.floor(x);
-    const j = Math.floor(random * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    currentSeed = random;
-  }
-  
-  return shuffled;
-}
-
-/**
- * GET /api/homepage/hero-images
- * Returns active hero images for homepage carousel
- * Optimized for fast page load - returns minimal fields and limited images
- */
-export const getHeroImages = async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 5;
-
-    const heroImages = await HeroImage
+    const products = await Product
       .find({ isActive: true })
-      .select('_id title subtitle imageUrl displayOrder')
-      .sort({ displayOrder: 1 })
+      .select('_id title slug images price mrp stock')
+      .skip(skipAmount)
       .limit(limit)
       .lean();
 
@@ -293,15 +125,169 @@ export const getHeroImages = async (req, res) => {
       statusCode: 200,
       success: true,
       error: null,
-      data: heroImages
+      data: products,
+      seed,
+      hasMore: offset + limit < totalCount,
     });
   } catch (error) {
-    console.error('Homepage hero images error:', error);
+    console.error('Homepage top picks error:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch top picks' },
+      data: null,
+    });
+  }
+};
+
+/**
+ * GET /api/homepage/hero-images
+ * Returns active hero images sorted by displayOrder
+ */
+export const getHeroImages = async (req, res) => {
+  try {
+    const heroImages = await HeroImage
+      .find({ isActive: true })
+      .sort({ displayOrder: 1 })
+      .lean();
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: heroImages,
+    });
+  } catch (error) {
+    console.error('Hero images error:', error);
     return res.status(500).json({
       statusCode: 500,
       success: false,
       error: { message: 'Failed to fetch hero images' },
-      data: []
+      data: null,
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ NEW: Public sections endpoint
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/homepage/sections
+ * Returns all active homepage sections with their resolved products/categories/brands.
+ * For sectionType=products  → resolves productIds into full product objects
+ *                             OR queries products by categoryIds/brandIds filters
+ * For sectionType=categories → resolves categoryIds into full category objects
+ * For sectionType=brands     → resolves brandIds into full brand objects
+ */
+export const getHomepageSections = async (req, res) => {
+  try {
+    // Fetch only active sections, sorted by displayOrder
+    const sections = await HomepageSection.find({ isActive: true })
+      .sort({ displayOrder: 1 })
+      .lean();
+
+    // Resolve each section's content
+    const resolved = await Promise.all(
+      sections.map(async (section) => {
+        try {
+          if (section.sectionType === 'categories') {
+            // Return category objects
+            const categories = await Category
+              .find({
+                _id: { $in: section.categoryIds },
+                isActive: true,
+              })
+              .select('_id name slug image')
+              .lean();
+
+            return { ...section, items: categories };
+          }
+
+          if (section.sectionType === 'brands') {
+            // Return brand objects
+            const brands = await Brand
+              .find({
+                _id: { $in: section.brandIds },
+                isActive: true,
+              })
+              .select('_id name slug logo')
+              .lean();
+
+            return { ...section, items: brands };
+          }
+
+          // Default: sectionType === 'products'
+          // If specific productIds are pinned, use those first
+          if (section.productIds && section.productIds.length > 0) {
+            const products = await Product
+              .find({
+                _id: { $in: section.productIds },
+                isActive: true,
+              })
+              .select('_id title slug images price mrp stock')
+              .lean();
+
+            // Preserve pinned order
+            const ordered = section.productIds
+              .map(id =>
+                products.find(p => p._id.toString() === id.toString())
+              )
+              .filter(Boolean);
+
+            return { ...section, items: ordered };
+          }
+
+          // No pinned products — build a filter query from categoryIds / brandIds
+          const productQuery = { isActive: true };
+
+          if (section.categoryIds && section.categoryIds.length > 0) {
+            productQuery.category = { $in: section.categoryIds };
+          }
+          if (section.brandIds && section.brandIds.length > 0) {
+            productQuery.brand = { $in: section.brandIds };
+          }
+
+          // Apply discount filter if set
+          if (section.discountType === 'percentage' || section.discountType === 'flat') {
+            if (section.minDiscount != null) {
+              productQuery.discount = { $gte: section.minDiscount };
+            }
+            if (section.maxDiscount != null) {
+              productQuery.discount = {
+                ...(productQuery.discount || {}),
+                $lte: section.maxDiscount,
+              };
+            }
+          }
+
+          const products = await Product
+            .find(productQuery)
+            .select('_id title slug images price mrp stock')
+            .limit(20)
+            .lean();
+
+          return { ...section, items: products };
+        } catch (sectionError) {
+          console.error(`Error resolving section ${section._id}:`, sectionError);
+          return { ...section, items: [] };
+        }
+      })
+    );
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      data: resolved,
+    });
+  } catch (error) {
+    console.error('getHomepageSections error:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch homepage sections' },
+      data: [],
     });
   }
 };
