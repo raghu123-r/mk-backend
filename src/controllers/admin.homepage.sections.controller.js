@@ -2,8 +2,8 @@
  * Admin Homepage Sections Controller
  * Place this file at: src/controllers/admin.homepage.sections.controller.js
  */
+import mongoose from 'mongoose';
 import HomepageSection from '../models/HomepageSection.js';
-import Product from '../models/Product.js';
 
 // ─── Helper: populate a section with full refs ────────────────────────────────
 async function populateSection(section) {
@@ -74,8 +74,8 @@ export const createSection = async (req, res) => {
       categoryIds: categoryIds || [],
       brandIds: brandIds || [],
       discountType: discountType || '',
-      minDiscount: minDiscount ?? null,
-      maxDiscount: maxDiscount ?? null,
+      minDiscount: minDiscount !== undefined && minDiscount !== '' ? Number(minDiscount) : null,
+      maxDiscount: maxDiscount !== undefined && maxDiscount !== '' ? Number(maxDiscount) : null,
       productIds: productIds || [],
     });
 
@@ -115,8 +115,8 @@ export const reorderSections = async (req, res) => {
 
     const bulkOps = order.map(({ id, displayOrder }) => ({
       updateOne: {
-        filter: { _id: id },
-        update: { $set: { displayOrder } },
+        filter: { _id: new mongoose.Types.ObjectId(id) },
+        update: { $set: { displayOrder: Number(displayOrder) } },
       },
     }));
 
@@ -196,8 +196,8 @@ export const updateSection = async (req, res) => {
     if (categoryIds !== undefined) update.categoryIds = categoryIds;
     if (brandIds !== undefined) update.brandIds = brandIds;
     if (discountType !== undefined) update.discountType = discountType;
-    if (minDiscount !== undefined) update.minDiscount = minDiscount;
-    if (maxDiscount !== undefined) update.maxDiscount = maxDiscount;
+    if (minDiscount !== undefined) update.minDiscount = minDiscount !== '' ? Number(minDiscount) : null;
+    if (maxDiscount !== undefined) update.maxDiscount = maxDiscount !== '' ? Number(maxDiscount) : null;
     if (productIds !== undefined) update.productIds = productIds;
     if (isActive !== undefined) update.isActive = isActive;
     if (displayOrder !== undefined) update.displayOrder = displayOrder;

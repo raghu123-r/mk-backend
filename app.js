@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 
 import routes from "./src/routes/index.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import adminHomepageRoutes from "./src/routes/admin.homepage.routes.js";
 import { notFound, errorHandler } from "./src/middlewares/error.js";
 import subCategoryRoutes from "./src/routes/subcategories.js";
 
@@ -32,10 +33,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman or curl)
       if (!origin) return callback(null, true);
-
-      // Allow any vercel.app subdomain (covers all preview deployments)
       if (
         allowedOrigins.includes(origin) ||
         origin.endsWith(".vercel.app")
@@ -79,7 +77,10 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api", routes);
-app.use("/api/admin", adminRoutes);
+
+// ⚠️ IMPORTANT: Mount the more-specific route FIRST
+app.use("/api/admin/homepage", adminHomepageRoutes); // ← MOVED ABOVE adminRoutes
+app.use("/api/admin", adminRoutes);                  // ← now comes AFTER
 
 /* ================================
    Errors
