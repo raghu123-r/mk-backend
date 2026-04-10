@@ -15,6 +15,7 @@ import * as adminProductCtrl from '../controllers/adminProductController.js';
 
 // COUPONS routes
 import couponRoutes from './admin.coupon.routes.js';
+import adminContactRoutes from './admin.contact.routes.js'
 
 const router = express.Router();
 
@@ -30,6 +31,7 @@ router.get('/products/:id', requireAuth, requireAdmin, adminProductCtrl.getProdu
 router.post('/products', requireAuth, requireAdmin, adminProductCtrl.createProduct);
 router.put('/products/:id', requireAuth, requireAdmin, adminProductCtrl.updateProduct);
 router.delete('/products/:id', requireAuth, requireAdmin, adminProductCtrl.deleteProduct);
+router.use('/contact-submissions', adminContactRoutes);
 
 // ---------------- USERS ------------------
 router.get('/users', requireAuth, requireAdmin, listUsers);

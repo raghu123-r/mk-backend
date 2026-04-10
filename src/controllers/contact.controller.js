@@ -7,7 +7,6 @@ export const createContact = async (req, res) => {
   try {
     const { name, phone, email, subject, message } = req.body;
 
-    // Validate required fields
     if (!name || !phone || !email) {
       return res.status(400).json({
         statusCode: 400,
@@ -17,7 +16,6 @@ export const createContact = async (req, res) => {
       });
     }
     
-    // Validate email format
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         statusCode: 400,
@@ -27,10 +25,9 @@ export const createContact = async (req, res) => {
       });
     }
 
-    // Create contact submission with mobile field (map from phone)
     const contact = new ContactSubmission({ 
       name, 
-      mobile: phone,  // Map phone to mobile
+      mobile: phone,
       email, 
       subject, 
       message 
@@ -50,6 +47,45 @@ export const createContact = async (req, res) => {
       statusCode: 500,
       success: false,
       error: { message: 'Unable to submit your message. Please try again or email us directly.' },
+      data: null
+    });
+  }
+};
+
+export const getAdminContactSubmissions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await ContactSubmission.countDocuments();
+    const submissions = await ContactSubmission.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return res.status(200).json({
+      statusCode: 200,
+      success: true,
+      error: null,
+      submissions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (err) {
+    console.error('getAdminContactSubmissions error', err);
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      error: { message: 'Failed to fetch contact submissions.' },
       data: null
     });
   }
