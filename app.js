@@ -7,19 +7,15 @@ import rateLimit from "express-rate-limit";
 
 import routes from "./src/routes/index.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
-
 import adminHomepageRoutes from "./src/routes/admin.homepage.routes.js";
-
-origin/develop
 import { notFound, errorHandler } from "./src/middlewares/error.js";
 import subCategoryRoutes from "./src/routes/subcategories.js";
 
 const app = express();
 
 /* ================================
-   ✅ CORS .— MUST BE FIRST
+   ✅ CORS — MUST BE FIRST
 ================================ */
-HEAD
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
@@ -53,24 +49,11 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.use(cors({
-  origin: true,  // Reflect the request origin
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Length', 'X-JSON'],
-  maxAge: 86400, // 24 hours
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
-origin/develop
 
 /* ================================
    Security & core middleware
 ================================ */
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(morgan("dev"));
 
 app.use(express.json({ limit: "2mb" }));
@@ -95,13 +78,9 @@ app.get("/", (_req, res) => {
 
 app.use("/api", routes);
 
-
-// ⚠️ IMPORTANT: Mount the more-specific route FIRST
-app.use("/api/admin/homepage", adminHomepageRoutes); // ← MOVED ABOVE adminRoutes
-app.use("/api/admin", adminRoutes);                  // ← now comes AFTER
+// ⚠️ IMPORTANT: More specific route MUST come BEFORE general admin route
+app.use("/api/admin/homepage", adminHomepageRoutes);
 app.use("/api/admin", adminRoutes);
-     // ✅ Fix: mounts /auth/request-otp etc.
-origin/develop
 
 /* ================================
    Errors
