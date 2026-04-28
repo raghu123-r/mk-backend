@@ -1,7 +1,6 @@
 /**
  * Homepage Controller (PUBLIC)
  * Place this file at: src/controllers/homepage.controller.js
- * REPLACES your existing homepage.controller.js
  */
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
@@ -12,13 +11,12 @@ import HomepageSection from '../models/HomepageSection.js';
 
 /**
  * GET /api/homepage/brands
- * Returns only brands marked showOnHomepage, sorted by homepageOrder
  */
 export const getHomepageBrands = async (req, res) => {
   try {
     const brands = await Brand
       .find({ isActive: true, showOnHomepage: true })
-      .select('_id name slug logo')
+      .select('_id name slug logoUrl') // ✅ FIXED: was 'logo', model field is 'logoUrl'
       .sort({ homepageOrder: 1, name: 1 })
       .limit(8)
       .lean();
@@ -42,22 +40,27 @@ export const getHomepageBrands = async (req, res) => {
 
 /**
  * GET /api/homepage/categories
- * Returns only categories marked showOnHomepage, sorted by homepageOrder
  */
 export const getHomepageCategories = async (req, res) => {
   try {
     const categories = await Category
       .find({ isActive: true, showOnHomepage: true })
-      .select('_id name slug image')
+      .select('_id name slug image image_url') // ✅ FIXED: select both fields
       .sort({ homepageOrder: 1, name: 1 })
       .limit(12)
       .lean();
+
+    // ✅ Normalize: always expose imageUrl field to frontend
+    const normalized = categories.map((c) => ({
+      ...c,
+      imageUrl: c.image_url || c.image || '',
+    }));
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
       error: null,
-      data: categories,
+      data: normalized,
     });
   } catch (error) {
     console.error('Homepage categories error:', error);
@@ -72,8 +75,6 @@ export const getHomepageCategories = async (req, res) => {
 
 /**
  * GET /api/homepage/top-picks
- * Returns random/pinned products for the Top Picks section
- * Query: ?limit=8&offset=0&seed=12345
  */
 export const getHomepageTopPicks = async (req, res) => {
   try {
@@ -83,7 +84,6 @@ export const getHomepageTopPicks = async (req, res) => {
 
     const settings = await HomepageSettings.getSettings();
 
-    // If there are pinned products, show them first
     if (settings?.pinnedProductIds?.length > 0 && offset === 0) {
       const pinnedProducts = await Product
         .find({
@@ -93,7 +93,6 @@ export const getHomepageTopPicks = async (req, res) => {
         .select('_id title slug images price mrp stock')
         .lean();
 
-      // Preserve pinned order
       const ordered = settings.pinnedProductIds
         .map(id => pinnedProducts.find(p => p._id.toString() === id.toString()))
         .filter(Boolean);
@@ -110,7 +109,6 @@ export const getHomepageTopPicks = async (req, res) => {
       });
     }
 
-    // Otherwise return random products using seed-based skip
     const totalCount = await Product.countDocuments({ isActive: true });
     const skipAmount = (seed + offset) % Math.max(totalCount - limit, 1);
 
@@ -142,7 +140,6 @@ export const getHomepageTopPicks = async (req, res) => {
 
 /**
  * GET /api/homepage/hero-images
- * Returns active hero images sorted by displayOrder
  */
 export const getHeroImages = async (req, res) => {
   try {
@@ -168,57 +165,48 @@ export const getHeroImages = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ✅ NEW: Public sections endpoint
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * GET /api/homepage/sections
- * Returns all active homepage sections with their resolved products/categories/brands.
- * For sectionType=products  → resolves productIds into full product objects
- *                             OR queries products by categoryIds/brandIds filters
- * For sectionType=categories → resolves categoryIds into full category objects
- * For sectionType=brands     → resolves brandIds into full brand objects
  */
 export const getHomepageSections = async (req, res) => {
   try {
-    // Fetch only active sections, sorted by displayOrder
     const sections = await HomepageSection.find({ isActive: true })
       .sort({ displayOrder: 1 })
       .lean();
 
-    // Resolve each section's content
     const resolved = await Promise.all(
       sections.map(async (section) => {
         try {
           if (section.sectionType === 'categories') {
-            // Return category objects
             const categories = await Category
               .find({
                 _id: { $in: section.categoryIds },
                 isActive: true,
               })
-              .select('_id name slug image')
+              .select('_id name slug image image_url') // ✅ FIXED: select both fields
               .lean();
 
-            return { ...section, items: categories };
+            const normalized = categories.map((c) => ({
+              ...c,
+              imageUrl: c.image_url || c.image || '',
+            }));
+
+            return { ...section, items: normalized };
           }
 
           if (section.sectionType === 'brands') {
-            // Return brand objects
             const brands = await Brand
               .find({
                 _id: { $in: section.brandIds },
                 isActive: true,
               })
-              .select('_id name slug logo')
+              .select('_id name slug logoUrl') // ✅ FIXED: was 'logo', model field is 'logoUrl'
               .lean();
 
             return { ...section, items: brands };
           }
 
           // Default: sectionType === 'products'
-          // If specific productIds are pinned, use those first
           if (section.productIds && section.productIds.length > 0) {
             const products = await Product
               .find({
@@ -228,7 +216,6 @@ export const getHomepageSections = async (req, res) => {
               .select('_id title slug images price mrp stock')
               .lean();
 
-            // Preserve pinned order
             const ordered = section.productIds
               .map(id =>
                 products.find(p => p._id.toString() === id.toString())
@@ -238,7 +225,6 @@ export const getHomepageSections = async (req, res) => {
             return { ...section, items: ordered };
           }
 
-          // No pinned products — build a filter query from categoryIds / brandIds
           const productQuery = { isActive: true };
 
           if (section.categoryIds && section.categoryIds.length > 0) {
@@ -248,7 +234,6 @@ export const getHomepageSections = async (req, res) => {
             productQuery.brand = { $in: section.brandIds };
           }
 
-          // Apply discount filter if set
           if (section.discountType === 'percentage' || section.discountType === 'flat') {
             if (section.minDiscount != null) {
               productQuery.discount = { $gte: section.minDiscount };
